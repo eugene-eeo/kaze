@@ -11,7 +11,7 @@ const (
 
 type NotificationHints struct {
 	Category string
-	Resident bool // Whether to automatically remove the notification
+	Resident bool // Whether to automatically remove the notification when an action has been invoked
 	Urgency  byte
 }
 
@@ -70,10 +70,7 @@ func (s *Service) GetServerInformation() (string, string, string, string, *dbus.
 }
 
 func (s *Service) GetCapabilities() ([]string, *dbus.Error) {
-	return []string{
-		"body",
-		"actions",
-	}, nil
+	return s.handler.Capabilities(), nil
 }
 
 func (s *Service) Notify(appName string, replacesId uint32, appIcon string, summary string, body string, actions []string, hints map[string]dbus.Variant, expireTimeout int32) (uint32, *dbus.Error) {

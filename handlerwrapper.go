@@ -31,6 +31,10 @@ func WrapHandler(conn *dbus.Conn, n NotificationHandler) *HandlerWrapper {
 	}
 }
 
+func (h *HandlerWrapper) Capabilities() []string {
+	return h.handler.Capabilities()
+}
+
 func (h *HandlerWrapper) HandleNotification(n *Notification) {
 	h.notificationChan <- n
 }

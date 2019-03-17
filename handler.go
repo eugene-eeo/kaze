@@ -4,6 +4,7 @@ import "fmt"
 import "github.com/godbus/dbus"
 
 type NotificationHandler interface {
+	Capabilities() []string
 	HandleNotification(n *Notification)
 	HandleClose(id uint32) *dbus.Error
 	HandleTimeout(id uint32)
@@ -12,6 +13,10 @@ type NotificationHandler interface {
 // Just for debugging
 type NullHandler struct {
 	conn *dbus.Conn
+}
+
+func (_ *NullHandler) Capabilities() []string {
+	return []string{"body"}
 }
 
 func (_ *NullHandler) HandleNotification(n *Notification) {
