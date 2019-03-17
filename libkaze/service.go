@@ -1,4 +1,4 @@
-package main
+package libkaze
 
 import "github.com/godbus/dbus"
 import "sync"
@@ -59,6 +59,13 @@ type Service struct {
 	conn    *dbus.Conn
 	lock    sync.Mutex
 	handler NotificationHandler
+}
+
+func NewService(conn *dbus.Conn, handler NotificationHandler) *Service {
+	return &Service{
+		conn:    conn,
+		handler: handler,
+	}
 }
 
 func (s *Service) GetServerInformation() (string, string, string, string, *dbus.Error) {

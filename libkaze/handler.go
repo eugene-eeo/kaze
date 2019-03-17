@@ -1,4 +1,4 @@
-package main
+package libkaze
 
 import "fmt"
 import "github.com/godbus/dbus"
@@ -11,9 +11,7 @@ type NotificationHandler interface {
 }
 
 // Just for debugging
-type NullHandler struct {
-	conn *dbus.Conn
-}
+type NullHandler struct{}
 
 func (_ *NullHandler) Capabilities() []string {
 	return []string{"body"}
@@ -23,7 +21,7 @@ func (_ *NullHandler) HandleNotification(n *Notification) {
 	fmt.Println(n)
 }
 
-func (n *NullHandler) HandleClose(id uint32) *dbus.Error {
+func (_ *NullHandler) HandleClose(id uint32) *dbus.Error {
 	return nil
 }
 

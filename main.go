@@ -1,6 +1,7 @@
 package main
 
 import "github.com/godbus/dbus"
+import "github.com/eugene-eeo/kaze/libkaze"
 
 func main() {
 	conn, err := dbus.SessionBus()
@@ -14,14 +15,10 @@ func main() {
 	if reply != dbus.RequestNameReplyPrimaryOwner {
 		panic("Name already taken")
 	}
-	handler := WrapHandler(conn, &NullHandler{conn})
-	s := Service{
-		id:      0,
-		conn:    conn,
-		handler: handler,
-	}
+	handler := libkaze.WrapHandler(conn, &libkaze.NullHandler{})
+	service := libkaze.NewService(conn, handler)
 	go handler.Loop()
-	err = conn.Export(&s, "/org/freedesktop/Notifications", "org.freedesktop.Notifications")
+	err = conn.Export(service, "/org/freedesktop/Notifications", "org.freedesktop.Notifications")
 	if err != nil {
 		panic(err)
 	}
