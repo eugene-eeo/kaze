@@ -49,7 +49,7 @@ func (h *HandlerWrapper) emitNotificationClosed(id uint32) {
 
 // SilentNotificationClose should be used to indicate that the underlying handler
 // has closed the notification without intervention from dbus, e.g. the user closes
-// the notification dialog.
+// the notification dialog. This emits the NotificationClosed signal appropriately.
 func (h *HandlerWrapper) SilentNotificationClose(id uint32) {
 	h.closedChan <- id
 }
@@ -86,7 +86,11 @@ func (h *HandlerWrapper) Loop() {
 				h.errorsChan <- &dbus.Error{}
 			}
 		case id := <-h.closedChan:
-			h.open.Remove(int(id))
+			x := int(id)
+			if h.open.Has(x) {
+				h.open.Remove(x)
+				h.emitNotificationClosed(id)
+			}
 		}
 	}
 }
