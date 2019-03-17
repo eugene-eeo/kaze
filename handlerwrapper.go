@@ -42,6 +42,10 @@ func (h *HandlerWrapper) HandleClose(id uint32) *dbus.Error {
 func (h *HandlerWrapper) HandleTimeout(id uint32) {
 }
 
+func (h *HandlerWrapper) emitNotificationClosed(id uint32) {
+	h.conn.Emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications.NotificationClosed", id)
+}
+
 func (h *HandlerWrapper) Loop() {
 	for {
 		select {
@@ -57,13 +61,17 @@ func (h *HandlerWrapper) Loop() {
 		case id := <-h.expiryChan:
 			if h.open[id] {
 				h.handler.HandleTimeout(id)
+				h.emitNotificationClosed(id)
 				delete(h.open, id)
 			}
 		case id := <-h.notificationClosedChan:
 			if h.open[id] {
 				delete(h.open, id)
-				h.errorsChan <- h.handler.HandleClose(id)
-				h.conn.Emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications.NotificationClosed", id)
+				err := h.handler.HandleClose(id)
+				if err == nil {
+					h.emitNotificationClosed(id)
+				}
+				h.errorsChan <- err
 			} else {
 				h.errorsChan <- &dbus.Error{}
 			}
