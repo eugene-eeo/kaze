@@ -46,6 +46,13 @@ func (h *HandlerWrapper) emitNotificationClosed(id uint32) {
 	h.conn.Emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications.NotificationClosed", id)
 }
 
+// SilentNotificationClose should be used to indicate that the underlying handler
+// has closed the notification without intervention from dbus, e.g. the user closes
+// the notification dialog.
+func (h *HandlerWrapper) SilentNotificationClose(id uint32) {
+	h.closedChan <- id
+}
+
 func (h *HandlerWrapper) Loop() {
 	for {
 		select {
@@ -60,9 +67,9 @@ func (h *HandlerWrapper) Loop() {
 			h.handler.HandleNotification(n)
 		case id := <-h.expiryChan:
 			if h.open[id] {
+				delete(h.open, id)
 				h.handler.HandleTimeout(id)
 				h.emitNotificationClosed(id)
-				delete(h.open, id)
 			}
 		case id := <-h.notificationClosedChan:
 			if h.open[id] {
@@ -75,8 +82,6 @@ func (h *HandlerWrapper) Loop() {
 			} else {
 				h.errorsChan <- &dbus.Error{}
 			}
-		// hack, just mark the id as closed
-		// should be used when for instance the user closes the window
 		case id := <-h.closedChan:
 			delete(h.open, id)
 		}
