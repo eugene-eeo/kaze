@@ -2,13 +2,14 @@ package main
 
 import "time"
 import "github.com/godbus/dbus"
+import "golang.org/x/tools/container/intsets"
 
 // HandlerWrapper wraps a NotificationHandler so that the underlying
 // handler doesn't have to worry about timeouts and is called
 // synchronously
 type HandlerWrapper struct {
 	conn                   *dbus.Conn
-	open                   map[uint32]bool
+	open                   intsets.Sparse
 	errorsChan             chan *dbus.Error
 	notificationChan       chan *Notification
 	notificationClosedChan chan uint32
@@ -20,7 +21,7 @@ type HandlerWrapper struct {
 func WrapHandler(conn *dbus.Conn, n NotificationHandler) *HandlerWrapper {
 	return &HandlerWrapper{
 		conn:                   conn,
-		open:                   make(map[uint32]bool),
+		open:                   intsets.Sparse{},
 		errorsChan:             make(chan *dbus.Error),
 		notificationChan:       make(chan *Notification),
 		notificationClosedChan: make(chan uint32),
@@ -63,17 +64,19 @@ func (h *HandlerWrapper) Loop() {
 					h.expiryChan <- n.Id
 				}()
 			}
-			h.open[n.Id] = true
+			h.open.Insert(int(n.Id))
 			h.handler.HandleNotification(n)
 		case id := <-h.expiryChan:
-			if h.open[id] {
-				delete(h.open, id)
+			x := int(id)
+			if h.open.Has(x) {
+				h.open.Remove(x)
 				h.handler.HandleTimeout(id)
 				h.emitNotificationClosed(id)
 			}
 		case id := <-h.notificationClosedChan:
-			if h.open[id] {
-				delete(h.open, id)
+			x := int(id)
+			if h.open.Has(x) {
+				h.open.Remove(x)
 				err := h.handler.HandleClose(id)
 				if err == nil {
 					h.emitNotificationClosed(id)
@@ -83,7 +86,7 @@ func (h *HandlerWrapper) Loop() {
 				h.errorsChan <- &dbus.Error{}
 			}
 		case id := <-h.closedChan:
-			delete(h.open, id)
+			h.open.Remove(int(id))
 		}
 	}
 }
