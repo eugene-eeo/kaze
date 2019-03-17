@@ -14,11 +14,13 @@ func main() {
 	if reply != dbus.RequestNameReplyPrimaryOwner {
 		panic("Name already taken")
 	}
+	handler := WrapHandler(conn, &NullHandler{conn})
 	s := Service{
 		id:      0,
 		conn:    conn,
-		handler: &NullHandler{},
+		handler: handler,
 	}
+	go handler.Loop()
 	err = conn.Export(&s, "/org/freedesktop/Notifications", "org.freedesktop.Notifications")
 	if err != nil {
 		panic(err)

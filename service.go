@@ -1,6 +1,7 @@
 package main
 
 import "github.com/godbus/dbus"
+import "sync"
 
 const (
 	UrgencyUrgent = '2'
@@ -56,6 +57,7 @@ func convertRawHintsToHints(h map[string]dbus.Variant) NotificationHints {
 type Service struct {
 	id      uint32
 	conn    *dbus.Conn
+	lock    sync.Mutex
 	handler NotificationHandler
 }
 
@@ -76,13 +78,15 @@ func (s *Service) GetCapabilities() ([]string, *dbus.Error) {
 
 func (s *Service) Notify(appName string, replacesId uint32, appIcon string, summary string, body string, actions []string, hints map[string]dbus.Variant, expireTimeout int32) (uint32, *dbus.Error) {
 	id := replacesId
-	if replacesId == 0 {
+	if id == 0 {
+		s.lock.Lock()
 		s.id++
 		// need to ensure that s.id > 0 if we get more than 2^32 notifications
 		if s.id == 0 {
 			s.id++
 		}
 		id = s.id
+		s.lock.Unlock()
 	}
 	s.handler.HandleNotification(&Notification{
 		Id:            id,
@@ -98,6 +102,5 @@ func (s *Service) Notify(appName string, replacesId uint32, appIcon string, summ
 }
 
 func (s *Service) CloseNotification(id uint32) *dbus.Error {
-	s.handler.HandleClose(id, s.conn)
-	return nil
+	return s.handler.HandleClose(id)
 }

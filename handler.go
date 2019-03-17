@@ -5,15 +5,23 @@ import "github.com/godbus/dbus"
 
 type NotificationHandler interface {
 	HandleNotification(n *Notification)
-	HandleClose(id uint32, conn *dbus.Conn)
+	HandleClose(id uint32) *dbus.Error
+	HandleTimeout(id uint32)
 }
 
-type NullHandler struct{}
+// Just for debugging
+type NullHandler struct {
+	conn *dbus.Conn
+}
 
 func (_ *NullHandler) HandleNotification(n *Notification) {
 	fmt.Println(n)
 }
 
-func (_ *NullHandler) HandleClose(id uint32, conn *dbus.Conn) {
-	conn.Emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications.NotificationClosed", id)
+func (n *NullHandler) HandleClose(id uint32) *dbus.Error {
+	return nil
+}
+
+func (_ *NullHandler) HandleTimeout(id uint32) {
+	fmt.Println(id, "timeout")
 }
