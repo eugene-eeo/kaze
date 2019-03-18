@@ -3,6 +3,13 @@ package libkaze
 import "time"
 import "github.com/godbus/dbus"
 
+const NotificationMaxAge = 5000
+
+type expiryPair struct {
+	uid uint
+	id  uint32
+}
+
 // HandlerWrapper wraps a NotificationHandler so that the underlying
 // handler doesn't have to worry about timeouts and is called
 // synchronously
@@ -10,7 +17,7 @@ type HandlerWrapper struct {
 	uid                    uint
 	conn                   *dbus.Conn
 	timeouts               map[uint32]uint
-	expiryChan             chan uint32
+	expiryChan             chan expiryPair
 	errorsChan             chan *dbus.Error
 	notificationChan       chan *Notification
 	notificationClosedChan chan uint32
@@ -25,7 +32,7 @@ func WrapHandler(conn *dbus.Conn, n NotificationHandler) *HandlerWrapper {
 		errorsChan:             make(chan *dbus.Error),
 		notificationChan:       make(chan *Notification),
 		notificationClosedChan: make(chan uint32),
-		expiryChan:             make(chan uint32),
+		expiryChan:             make(chan expiryPair),
 		closedChan:             make(chan uint32),
 		handler:                n,
 	}
@@ -63,18 +70,17 @@ func (h *HandlerWrapper) Loop() {
 		select {
 		case n := <-h.notificationChan:
 			h.uid++
-			if n.ExpireTimeout != -1 {
-				// Associate with each notification a uid, that way we can check
-				// if a notification has expired correctly
-				uid := h.uid
-				go func() {
-					time.Sleep(time.Millisecond * time.Duration(n.ExpireTimeout))
-					if h.timeouts[n.Id] == uid {
-						h.expiryChan <- n.Id
-					}
-				}()
+			if n.ExpireTimeout == -1 {
+				n.ExpireTimeout = NotificationMaxAge
 			}
-			h.timeouts[n.Id] = h.uid
+			// Associate with each notification a uid, that way we can check
+			// if a notification has expired correctly
+			uid := h.uid
+			go func() {
+				time.Sleep(time.Millisecond * time.Duration(n.ExpireTimeout))
+				h.expiryChan <- expiryPair{uid, n.Id}
+			}()
+			h.timeouts[n.Id] = uid
 			h.handler.HandleNotification(n)
 
 		case id := <-h.notificationClosedChan:
@@ -89,10 +95,12 @@ func (h *HandlerWrapper) Loop() {
 				h.errorsChan <- &dbus.Error{}
 			}
 
-		case id := <-h.expiryChan:
-			delete(h.timeouts, id)
-			h.handler.HandleTimeout(id)
-			h.emitNotificationClosed(id)
+		case pair := <-h.expiryChan:
+			if uid, ok := h.timeouts[pair.id]; ok && uid == pair.uid {
+				delete(h.timeouts, pair.id)
+				h.handler.HandleTimeout(pair.id)
+				h.emitNotificationClosed(pair.id)
+			}
 
 		case id := <-h.closedChan:
 			if _, ok := h.timeouts[id]; ok {
