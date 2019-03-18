@@ -1,6 +1,7 @@
 package x
 
 import "os"
+import "sort"
 import "image"
 import "github.com/godbus/dbus"
 import "github.com/eugene-eeo/kaze/libkaze"
@@ -22,9 +23,15 @@ var fg = xgraphics.BGRA{B: 0xff, G: 0xff, R: 0xff, A: 0xff}
 var monitorWidth = 1920
 var monitorHeight = 1080
 
+type windowOrder struct {
+	order  uint
+	window *xwindow.Window
+}
+
 type XHandler struct {
 	X       *xgbutil.XUtil
-	windows map[uint32]*xwindow.Window
+	windows map[uint32]*windowOrder
+	uid     uint
 }
 
 func NewXHandler() *XHandler {
@@ -35,7 +42,7 @@ func NewXHandler() *XHandler {
 	go xevent.Main(X)
 	return &XHandler{
 		X:       X,
-		windows: map[uint32]*xwindow.Window{},
+		windows: map[uint32]*windowOrder{},
 	}
 }
 
@@ -64,36 +71,61 @@ func (h *XHandler) HandleNotification(n *libkaze.Notification) {
 	}
 
 	_, firsth := xgraphics.Extents(font, fontSize, n.Summary)
-	_, _, err = ximg.Text(10, 10+firsth, fg, fontSize, font, n.Body)
+	bodyText := maxWidth(n.Body, notificationWidth-20, func(s string) int {
+		w, _ := xgraphics.Extents(font, fontSize, s)
+		return w
+	})
+	_, _, err = ximg.Text(10, 10+firsth, fg, fontSize, font, bodyText)
 	if err != nil {
 		panic(err)
 	}
-	secw, sech := xgraphics.Extents(font, fontSize, n.Body)
+	secw, sech := xgraphics.Extents(font, fontSize, bodyText)
 	bounds := image.Rect(10, 10+firsth, 10+secw, 10+firsth+sech)
 
-	win := h.windows[n.Id]
-	if win == nil {
+	var win *xwindow.Window
+	winOrder := h.windows[n.Id]
+	if winOrder == nil {
 		// if we cannot find a window
 		win = ximg.XShow()
 		ewmh.WmWindowTypeSet(h.X, win.Id, []string{"_NET_WM_WINDOW_TYPE_NOTIFICATION"})
-		win.Move(monitorWidth-notificationWidth, 20)
-		h.windows[n.Id] = win
+		h.uid++
+		h.windows[n.Id] = &windowOrder{h.uid, win}
+	} else {
+		win = winOrder.window
 	}
 	ximg.SubImage(bounds).(*xgraphics.Image).XDraw()
 	ximg.XPaint(win.Id)
+	h.repaint()
+}
+
+func (h *XHandler) repaint() {
+	ids := make([]uint32, len(h.windows))
+	i := 0
+	for id, _ := range h.windows {
+		ids[i] = id
+		i++
+	}
+	sort.Slice(ids, func(i, j int) bool {
+		return h.windows[ids[i]].order < h.windows[ids[j]].order
+	})
+	for i, id := range ids {
+		h.windows[id].window.Move(monitorWidth-notificationWidth, 20+i*(notificationHeight+10))
+	}
 }
 
 func (h *XHandler) HandleClose(id uint32) *dbus.Error {
 	if h.windows[id] != nil {
-		h.windows[id].Destroy()
+		h.windows[id].window.Destroy()
 		delete(h.windows, id)
 	}
+	h.repaint()
 	return nil
 }
 
 func (h *XHandler) HandleTimeout(id uint32) {
 	if h.windows[id] != nil {
-		h.windows[id].Destroy()
+		h.windows[id].window.Destroy()
 		delete(h.windows, id)
 	}
+	h.repaint()
 }
