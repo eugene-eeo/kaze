@@ -16,9 +16,11 @@ func main() {
 	if reply != dbus.RequestNameReplyPrimaryOwner {
 		panic("Name already taken")
 	}
-	handler := libkaze.WrapHandler(conn, kaze_x.NewXHandler())
-	service := libkaze.NewService(conn, handler)
-	go handler.Loop()
+	handler := kaze_x.NewXHandler()
+	wrapper := libkaze.WrapHandler(conn, handler)
+	service := libkaze.NewService(conn, wrapper)
+	handler.Wrapper = wrapper
+	go wrapper.Loop()
 	err = conn.Export(service, "/org/freedesktop/Notifications", "org.freedesktop.Notifications")
 	if err != nil {
 		panic(err)

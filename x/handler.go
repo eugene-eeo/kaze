@@ -1,5 +1,6 @@
 package x
 
+import "fmt"
 import "os"
 import "sort"
 import "image"
@@ -10,27 +11,29 @@ import "github.com/BurntSushi/xgbutil/xwindow"
 import "github.com/BurntSushi/xgbutil/xgraphics"
 import "github.com/BurntSushi/xgbutil/xevent"
 import "github.com/BurntSushi/xgbutil/ewmh"
+import "github.com/BurntSushi/xgbutil/mousebind"
 
-const notificationWidth = 200
-const notificationHeight = 50
+const notificationWidth = 300
 const fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 const fontSize = 14
 
-var transparent = xgraphics.BGRA{B: 0xff, G: 0x00, R: 0x00, A: 0x00}
-var bg = xgraphics.BGRA{B: 0xff, G: 0x66, R: 0x33, A: 0xff}
+var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
 var fg = xgraphics.BGRA{B: 0xff, G: 0xff, R: 0xff, A: 0xff}
 
+var padding = 10
 var monitorWidth = 1920
 var monitorHeight = 1080
 
 type windowOrder struct {
 	order  uint
 	window *xwindow.Window
+	height int
 }
 
 type XHandler struct {
 	X       *xgbutil.XUtil
 	windows map[uint32]*windowOrder
+	Wrapper *libkaze.HandlerWrapper
 	uid     uint
 }
 
@@ -39,6 +42,7 @@ func NewXHandler() *XHandler {
 	if err != nil {
 		panic(err)
 	}
+	mousebind.Initialize(X)
 	go xevent.Main(X)
 	return &XHandler{
 		X:       X,
@@ -47,7 +51,7 @@ func NewXHandler() *XHandler {
 }
 
 func (_ *XHandler) Capabilities() []string {
-	return []string{"body"}
+	return []string{"body", "actions"}
 }
 
 func (h *XHandler) HandleNotification(n *libkaze.Notification) {
@@ -59,28 +63,31 @@ func (h *XHandler) HandleNotification(n *libkaze.Notification) {
 	font, err := xgraphics.ParseFont(fontReader)
 	font = xgraphics.MustFont(font, err)
 
-	// create canvas
-	ximg := xgraphics.New(h.X, image.Rect(0, 0, notificationWidth, notificationHeight))
-	ximg.For(func(x, y int) xgraphics.BGRA {
-		return bg
-	})
-
-	_, _, err = ximg.Text(10, 10, fg, fontSize, font, n.Summary)
-	if err != nil {
-		panic(err)
-	}
-
-	_, firsth := xgraphics.Extents(font, fontSize, n.Summary)
-	bodyText := maxWidth(n.Body, notificationWidth-20, func(s string) int {
+	summary := maxWidth(fmt.Sprintf("%s: %s", n.AppName, n.Summary), notificationWidth, func(s string) int {
 		w, _ := xgraphics.Extents(font, fontSize, s)
 		return w
 	})
-	_, _, err = ximg.Text(10, 10+firsth, fg, fontSize, font, bodyText)
+
+	bodyText := maxWidth(n.Body, notificationWidth, func(s string) int {
+		w, _ := xgraphics.Extents(font, fontSize, s)
+		return w
+	})
+
+	firstw, firsth := xgraphics.Extents(font, fontSize, summary)
+	secw, sech := xgraphics.Extents(font, fontSize, bodyText)
+
+	// create canvas
+	ximg := ximgWithProps(h.X, padding, firsth+sech, notificationWidth, 2, bg, fg)
+
+	_, _, err = ximg.Text(padding, padding, fg, fontSize, font, summary)
 	if err != nil {
 		panic(err)
 	}
-	secw, sech := xgraphics.Extents(font, fontSize, bodyText)
-	bounds := image.Rect(10, 10+firsth, 10+secw, 10+firsth+sech)
+
+	_, _, err = ximg.Text(padding, padding+firsth, fg, fontSize, font, bodyText)
+	if err != nil {
+		panic(err)
+	}
 
 	var win *xwindow.Window
 	winOrder := h.windows[n.Id]
@@ -89,13 +96,25 @@ func (h *XHandler) HandleNotification(n *libkaze.Notification) {
 		win = ximg.XShow()
 		ewmh.WmWindowTypeSet(h.X, win.Id, []string{"_NET_WM_WINDOW_TYPE_NOTIFICATION"})
 		h.uid++
-		h.windows[n.Id] = &windowOrder{h.uid, win}
+		h.windows[n.Id] = &windowOrder{h.uid, win, 2*padding + firsth + sech}
+		cb := mousebind.ButtonPressFun(func(x *xgbutil.XUtil, e xevent.ButtonPressEvent) {
+			win.Destroy()
+			delete(h.windows, n.Id)
+			h.close(n.Id)
+			h.repaint()
+		})
+		cb.Connect(h.X, win.Id, "1", false, true)
 	} else {
 		win = winOrder.window
 	}
+	bounds := image.Rect(10, 10+firsth, 10+max(firstw, secw), 10+firsth+sech)
 	ximg.SubImage(bounds).(*xgraphics.Image).XDraw()
 	ximg.XPaint(win.Id)
 	h.repaint()
+}
+
+func (h *XHandler) close(id uint32) {
+	h.Wrapper.SilentNotificationClose(id)
 }
 
 func (h *XHandler) repaint() {
@@ -108,8 +127,13 @@ func (h *XHandler) repaint() {
 	sort.Slice(ids, func(i, j int) bool {
 		return h.windows[ids[i]].order < h.windows[ids[j]].order
 	})
-	for i, id := range ids {
-		h.windows[id].window.Move(monitorWidth-notificationWidth, 20+i*(notificationHeight+10))
+	height := 20 + 10
+	x := monitorWidth - (notificationWidth + 2*padding + 2*2) - 10
+	for _, id := range ids {
+		windowInfo := h.windows[id]
+		windowInfo.window.Move(x, height)
+		height += windowInfo.height
+		height += padding
 	}
 }
 

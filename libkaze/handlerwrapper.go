@@ -3,8 +3,6 @@ package libkaze
 import "time"
 import "github.com/godbus/dbus"
 
-const NotificationMaxAge = 5000
-
 type expiryPair struct {
 	uid uint
 	id  uint32
@@ -70,16 +68,16 @@ func (h *HandlerWrapper) Loop() {
 		select {
 		case n := <-h.notificationChan:
 			h.uid++
-			if n.ExpireTimeout == -1 {
-				n.ExpireTimeout = NotificationMaxAge
-			}
-			// Associate with each notification a uid, that way we can check
-			// if a notification has expired correctly
 			uid := h.uid
-			go func() {
-				time.Sleep(time.Millisecond * time.Duration(n.ExpireTimeout))
-				h.expiryChan <- expiryPair{uid, n.Id}
-			}()
+			// Urgent Notifications should not have a timeout
+			if n.ExpireTimeout != -1 && n.Hints.Urgency != UrgencyUrgent {
+				// Associate with each notification a uid, that way we can check
+				// if a notification has expired correctly
+				go func() {
+					time.Sleep(time.Millisecond * time.Duration(n.ExpireTimeout))
+					h.expiryChan <- expiryPair{uid, n.Id}
+				}()
+			}
 			h.timeouts[n.Id] = uid
 			h.handler.HandleNotification(n)
 
