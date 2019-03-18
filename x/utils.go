@@ -1,15 +1,16 @@
 package x
 
 func maxWidth(text string, max int, oracle func(string) int) string {
+	n := len(text)
 	l := oracle(text)
-	i := len(text)
+	i := n
 	// minimisation stage
-	for l > max {
+	for l > max && i > 0 {
 		i /= 2
 		l = oracle(text[:i])
 	}
 	// maximisation stage
-	for {
+	for i < n {
 		i++
 		l = oracle(text[:i])
 		if l > max {
