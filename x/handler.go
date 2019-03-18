@@ -1,5 +1,6 @@
 package x
 
+import "time"
 import "fmt"
 import "os"
 import "sort"
@@ -13,6 +14,7 @@ import "github.com/BurntSushi/xgbutil/xevent"
 import "github.com/BurntSushi/xgbutil/ewmh"
 import "github.com/BurntSushi/xgbutil/mousebind"
 
+const popupMaxAge = 3500 * time.Millisecond
 const notificationWidth = 300
 const fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 const fontSize = 14
@@ -96,11 +98,24 @@ func (h *XHandler) HandleNotification(n *libkaze.Notification) {
 		win = ximg.XShow()
 		ewmh.WmWindowTypeSet(h.X, win.Id, []string{"_NET_WM_WINDOW_TYPE_NOTIFICATION"})
 		h.uid++
+		id := n.Id
+		uid := h.uid
 		h.windows[n.Id] = &windowOrder{h.uid, win, 2*padding + firsth + sech}
+		// automatically close and destroy window, but do not emit the close
+		// notification action
+		go func() {
+			time.Sleep(popupMaxAge)
+			w := h.windows[id]
+			if w != nil && w.order == uid {
+				w.window.Destroy()
+				delete(h.windows, id)
+				h.repaint()
+			}
+		}()
 		cb := mousebind.ButtonPressFun(func(x *xgbutil.XUtil, e xevent.ButtonPressEvent) {
 			win.Destroy()
-			delete(h.windows, n.Id)
-			h.close(n.Id)
+			delete(h.windows, id)
+			h.close(id)
 			h.repaint()
 		})
 		cb.Connect(h.X, win.Id, "1", false, true)
