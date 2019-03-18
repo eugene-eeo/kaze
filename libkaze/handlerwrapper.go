@@ -70,7 +70,7 @@ func (h *HandlerWrapper) Loop() {
 			h.uid++
 			uid := h.uid
 			// Urgent Notifications should not have a timeout
-			if n.ExpireTimeout != -1 && n.Hints.Urgency != UrgencyUrgent {
+			if n.ExpireTimeout != -1 && n.Hints.Urgency != UrgencyCritical {
 				// Associate with each notification a uid, that way we can check
 				// if a notification has expired correctly
 				go func() {

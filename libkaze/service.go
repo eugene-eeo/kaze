@@ -4,9 +4,9 @@ import "github.com/godbus/dbus"
 import "sync"
 
 const (
-	UrgencyUrgent = '2'
-	UrgencyNormal = '1'
-	UrgencyLow    = '0'
+	UrgencyCritical = 2
+	UrgencyNormal   = 1
+	UrgencyLow      = 0
 )
 
 type NotificationHints struct {
@@ -46,7 +46,7 @@ func convertRawHintsToHints(h map[string]dbus.Variant) NotificationHints {
 			}
 		case "urgency":
 			urgency, ok := value.Value().(byte)
-			if ok && UrgencyLow <= urgency && urgency <= UrgencyUrgent {
+			if ok && UrgencyLow <= urgency && urgency <= UrgencyCritical {
 				hints.Urgency = urgency
 			}
 		}

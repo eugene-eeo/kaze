@@ -19,8 +19,9 @@ const notificationWidth = 300
 const fontPath = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
 const fontSize = 14
 
-var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
 var fg = xgraphics.BGRA{B: 0xff, G: 0xff, R: 0xff, A: 0xff}
+var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
+var bgUrgent = xgraphics.BGRA{B: 0x00, G: 0x11, R: 0x66, A: 0xff}
 
 var padding = 10
 var monitorWidth = 1920
@@ -79,7 +80,11 @@ func (h *XHandler) HandleNotification(n *libkaze.Notification) {
 	secw, sech := xgraphics.Extents(font, fontSize, bodyText)
 
 	// create canvas
-	ximg := ximgWithProps(h.X, padding, firsth+sech, notificationWidth, 2, bg, fg)
+	bgColor := bg
+	if n.Hints.Urgency == libkaze.UrgencyCritical {
+		bgColor = bgUrgent
+	}
+	ximg := ximgWithProps(h.X, padding, firsth+sech, notificationWidth, 2, bgColor, fg)
 
 	_, _, err = ximg.Text(padding, padding, fg, fontSize, font, summary)
 	if err != nil {
@@ -101,17 +106,19 @@ func (h *XHandler) HandleNotification(n *libkaze.Notification) {
 		id := n.Id
 		uid := h.uid
 		h.windows[n.Id] = &windowOrder{h.uid, win, 2*padding + firsth + sech}
-		// automatically close and destroy window, but do not emit the close
-		// notification action
-		go func() {
-			time.Sleep(popupMaxAge)
-			w := h.windows[id]
-			if w != nil && w.order == uid {
-				w.window.Destroy()
-				delete(h.windows, id)
-				h.repaint()
-			}
-		}()
+		if n.Hints.Urgency != libkaze.UrgencyCritical {
+			// automatically close and destroy window, but do not emit the close
+			// notification action
+			go func() {
+				time.Sleep(popupMaxAge)
+				w := h.windows[id]
+				if w != nil && w.order == uid {
+					w.window.Destroy()
+					delete(h.windows, id)
+					h.repaint()
+				}
+			}()
+		}
 		cb := mousebind.ButtonPressFun(func(x *xgbutil.XUtil, e xevent.ButtonPressEvent) {
 			win.Destroy()
 			delete(h.windows, id)
