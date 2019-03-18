@@ -1,4 +1,4 @@
-package libkaze
+package main
 
 import "time"
 import "github.com/godbus/dbus"

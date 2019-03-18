@@ -1,8 +1,6 @@
 package main
 
 import "github.com/godbus/dbus"
-import "github.com/eugene-eeo/kaze/libkaze"
-import kaze_x "github.com/eugene-eeo/kaze/x"
 
 func main() {
 	conn, err := dbus.SessionBus()
@@ -16,9 +14,9 @@ func main() {
 	if reply != dbus.RequestNameReplyPrimaryOwner {
 		panic("Name already taken")
 	}
-	handler := kaze_x.NewXHandler()
-	wrapper := libkaze.WrapHandler(conn, handler)
-	service := libkaze.NewService(conn, wrapper)
+	handler := NewXHandler()
+	wrapper := WrapHandler(conn, handler)
+	service := NewService(conn, wrapper)
 	handler.Wrapper = wrapper
 	go wrapper.Loop()
 	err = conn.Export(service, "/org/freedesktop/Notifications", "org.freedesktop.Notifications")

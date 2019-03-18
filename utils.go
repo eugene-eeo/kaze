@@ -1,8 +1,10 @@
-package x
+package main
 
+import "os"
 import "image"
 import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xgraphics"
+import "github.com/BurntSushi/freetype-go/freetype/truetype"
 
 func maxWidth(text string, max int, oracle func(string) int) string {
 	n := len(text)
@@ -50,4 +52,13 @@ func ximgWithProps(X *xgbutil.XUtil, padding, height, width, border int, bg, bor
 		return bg
 	})
 	return ximg
+}
+
+func mustReadFont(path string) *truetype.Font {
+	fontReader, err := os.Open(path)
+	if err != nil {
+		panic(err)
+	}
+	font, err := xgraphics.ParseFont(fontReader)
+	return xgraphics.MustFont(font, err)
 }

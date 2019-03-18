@@ -1,4 +1,4 @@
-package libkaze
+package main
 
 import "github.com/godbus/dbus"
 import "sync"

@@ -1,4 +1,4 @@
-package libkaze
+package main
 
 import "fmt"
 import "github.com/godbus/dbus"
