@@ -136,7 +136,7 @@ func (h *XHandler) repaint() {
 	for _, id := range ids {
 		popup := h.popups[id]
 		popup.Move(x, height)
-		height += popup.height - 2
+		height += popup.Height() - 2
 	}
 }
 
@@ -147,10 +147,8 @@ func (h *XHandler) Loop() {
 			for _, popup := range h.popups {
 				// close all non-critical notifications
 				if popup.notification.Hints.Urgency != UrgencyCritical && popup.Shown() {
-					id := popup.notification.Id
-					order := popup.order
 					go func() {
-						h.popupRemoveChan <- orderIdPair{id, order}
+						h.popupRemoveChan <- orderIdPair{popup.notification.Id, popup.order}
 					}()
 				}
 			}

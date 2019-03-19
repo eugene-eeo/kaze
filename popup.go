@@ -19,6 +19,11 @@ var fg = xgraphics.BGRA{B: 0xff, G: 0xff, R: 0xff, A: 0xff}
 var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
 var bgUrgent = xgraphics.BGRA{B: 0x00, G: 0x11, R: 0x66, A: 0xff}
 
+type TextLine struct {
+	Text   string
+	Height int
+}
+
 func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgraphics.Image {
 	fontWidthOracle := func(s string) int {
 		w, _ := xgraphics.Extents(font, fontSize, s)
@@ -26,26 +31,40 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgrap
 	}
 
 	summary := maxWidth(fmt.Sprintf("%s: %s", n.AppName, n.Summary), notificationWidth, fontWidthOracle)
-	bodyText := maxWidth(body, notificationWidth, fontWidthOracle)
-
 	_, firsth := xgraphics.Extents(font, fontSize, summary)
-	_, sech := xgraphics.Extents(font, fontSize, bodyText)
+
+	chunks := []TextLine{}
+	height := firsth
+
+	for {
+		text := maxWidth(body, notificationWidth, fontWidthOracle)
+		_, h := xgraphics.Extents(font, fontSize, text)
+		chunks = append(chunks, TextLine{text, h})
+		height += h
+		body = body[len(text):]
+		if len(body) == 0 {
+			break
+		}
+	}
 
 	// create canvas
 	bgColor := bg
 	if n.Hints.Urgency == UrgencyCritical {
 		bgColor = bgUrgent
 	}
-	ximg := ximgWithProps(X, padding, firsth+sech, notificationWidth, 2, bgColor, fg)
+	ximg := ximgWithProps(X, padding, height, notificationWidth, 2, bgColor, fg)
+	h := 0
 	// draw text
 	_, _, _ = ximg.Text(padding, padding, fg, fontSize, font, summary)
-	_, _, _ = ximg.Text(padding, padding+firsth, fg, fontSize, font, bodyText)
+	for _, line := range chunks {
+		_, _, _ = ximg.Text(padding, padding+firsth+h, fg, fontSize, font, line.Text)
+		h += line.Height
+	}
 	return ximg
 }
 
 type Popup struct {
 	order        uint
-	height       int
 	window       *xwindow.Window
 	notification *Notification
 	x            *xgbutil.XUtil
@@ -64,13 +83,17 @@ func (p *Popup) Shown() bool {
 	return p.window != nil
 }
 
+func (p *Popup) Height() int {
+	g, _ := p.window.Geometry()
+	return g.Height()
+}
+
 func (p *Popup) Update(n *Notification) {
 	p.notification = n
 	body, links := TextInfoFromString(n.Body)
 	ximg := ximgFromNotification(p.x, n, body)
 	p.links = links
 	p.window = ximg.XShow()
-	p.height = ximg.Rect.Max.Y
 	// care: this should be done before drawing anything because otherwise
 	// we would get some glitch
 	ewmh.WmWindowTypeSet(p.x, p.window.Id, []string{"_NET_WM_WINDOW_TYPE_NOTIFICATION"})
