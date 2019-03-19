@@ -1,6 +1,5 @@
 package main
 
-import "fmt"
 import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xgraphics"
 import "github.com/BurntSushi/xgbutil/xwindow"
@@ -14,7 +13,10 @@ const padding = 10
 const monitorWidth = 1920
 const monitorHeight = 1080
 
-var font = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf")
+var (
+	fontBold    = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf")
+	fontRegular = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf")
+)
 var fg = xgraphics.BGRA{B: 0xff, G: 0xff, R: 0xff, A: 0xff}
 var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
 var bgUrgent = xgraphics.BGRA{B: 0x00, G: 0x11, R: 0x66, A: 0xff}
@@ -26,19 +28,22 @@ type TextLine struct {
 
 func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgraphics.Image {
 	fontWidthOracle := func(s string) int {
-		w, _ := xgraphics.Extents(font, fontSize, s)
+		w, _ := xgraphics.Extents(fontRegular, fontSize, s)
 		return w
 	}
 
-	summary := maxWidth(fmt.Sprintf("%s: %s", n.AppName, n.Summary), notificationWidth, fontWidthOracle)
-	_, firsth := xgraphics.Extents(font, fontSize, summary)
+	summary := maxWidth(n.AppName+": "+n.Summary, notificationWidth, func(s string) int {
+		w, _ := xgraphics.Extents(fontBold, fontSize, s)
+		return w
+	})
+	_, firsth := xgraphics.Extents(fontBold, fontSize, summary)
 
 	chunks := []TextLine{}
 	height := firsth
 
 	for {
 		text := maxWidth(body, notificationWidth, fontWidthOracle)
-		_, h := xgraphics.Extents(font, fontSize, text)
+		_, h := xgraphics.Extents(fontRegular, fontSize, text)
 		chunks = append(chunks, TextLine{text, h})
 		height += h
 		body = body[len(text):]
@@ -55,9 +60,9 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgrap
 	ximg := ximgWithProps(X, padding, height, notificationWidth, 2, bgColor, fg)
 	h := 0
 	// draw text
-	_, _, _ = ximg.Text(padding, padding, fg, fontSize, font, summary)
+	_, _, _ = ximg.Text(padding, padding, fg, fontSize, fontBold, summary)
 	for _, line := range chunks {
-		_, _, _ = ximg.Text(padding, padding+firsth+h, fg, fontSize, font, line.Text)
+		_, _, _ = ximg.Text(padding, padding+firsth+h, fg, fontSize, fontRegular, line.Text)
 		h += line.Height
 	}
 	return ximg
