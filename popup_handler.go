@@ -1,5 +1,6 @@
 package main
 
+import "fmt"
 import "time"
 import "sort"
 
@@ -65,15 +66,35 @@ func NewXHandler() *XHandler {
 }
 
 func (_ *XHandler) Capabilities() []string {
-	return []string{"body", "actions", "persistence"}
+	return []string{
+		"body",
+		"actions",
+		"persistence",
+		"action-icons",
+		"body-hyperlinks",
+		"body-images",
+		"body-markup",
+		"icon-multi",
+		"icon-static",
+		"sound",
+	}
 }
 
-func (h *XHandler) bindPopupClose(p *Popup) {
-	cb := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) {
+func (h *XHandler) bindMousekeys(p *Popup) {
+	// close event
+	closeWindow := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) {
 		h.Wrapper.SilentNotificationClose(p.notification.Id)
 		h.HandleClose(p.notification.Id)
 	})
-	cb.Connect(h.X, p.window.Id, "1", false, true)
+	// actions
+	actions := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) {
+		fmt.Println("clicked")
+		for _, action := range p.notification.Actions {
+			fmt.Printf("%s: %s\n", action.Key, action.Value)
+		}
+	})
+	closeWindow.Connect(h.X, p.window.Id, "1", false, true)
+	actions.Connect(h.X, p.window.Id, "3", false, true)
 }
 
 func (h *XHandler) HandleNotification(n *Notification) {
@@ -83,7 +104,7 @@ func (h *XHandler) HandleNotification(n *Notification) {
 		h.uid++
 		popup = NewPopup(h.X, h.uid, n)
 		h.popups[n.Id] = popup
-		h.bindPopupClose(popup)
+		h.bindMousekeys(popup)
 		uid := h.uid
 		go func() {
 			time.Sleep(popupMaxAge)
@@ -120,7 +141,7 @@ func (h *XHandler) Loop() {
 		case <-h.closeShowAllTimer.C:
 			for _, popup := range h.popups {
 				// close all non-critical notifications
-				if popup.notification.Hints.Urgency != UrgencyCritical {
+				if popup.notification.Hints.Urgency != UrgencyCritical && popup.Shown() {
 					id := popup.notification.Id
 					order := popup.order
 					go func() {
@@ -152,7 +173,7 @@ func (h *XHandler) Loop() {
 				for _, popup := range h.popups {
 					if !popup.Shown() {
 						popup.Update(popup.notification)
-						h.bindPopupClose(popup)
+						h.bindMousekeys(popup)
 					}
 				}
 				h.repaint()

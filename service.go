@@ -9,6 +9,11 @@ const (
 	UrgencyLow      = 0
 )
 
+type NotificationAction struct {
+	Key   string
+	Value string
+}
+
 type NotificationHints struct {
 	Category string
 	Resident bool // Whether to automatically remove the notification when an action has been invoked
@@ -22,11 +27,22 @@ type Notification struct {
 	Summary       string
 	Body          string
 	Hints         NotificationHints
-	Actions       []string
+	Actions       []NotificationAction
 	ExpireTimeout int32
 }
 
-func convertRawHintsToHints(h map[string]dbus.Variant) NotificationHints {
+func convertRawActions(actions []string) []NotificationAction {
+	rv := make([]NotificationAction, len(actions)/2)
+	for i := 0; i < len(actions)/2; i++ {
+		rv[i] = NotificationAction{
+			Key:   actions[2*i],
+			Value: actions[2*i+1],
+		}
+	}
+	return rv
+}
+
+func convertRawHints(h map[string]dbus.Variant) NotificationHints {
 	hints := NotificationHints{
 		Category: "",
 		Resident: false,
@@ -98,8 +114,8 @@ func (s *Service) Notify(appName string, replacesId uint32, appIcon string, summ
 		AppIcon:       appIcon,
 		Summary:       summary,
 		Body:          body,
-		Actions:       actions,
-		Hints:         convertRawHintsToHints(hints),
+		Actions:       convertRawActions(actions),
+		Hints:         convertRawHints(hints),
 		ExpireTimeout: expireTimeout,
 	})
 	return id, nil
