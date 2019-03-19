@@ -8,6 +8,7 @@ import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xevent"
 import "github.com/BurntSushi/xgbutil/mousebind"
 import "github.com/BurntSushi/xgbutil/keybind"
+import "github.com/desertbit/timer"
 
 const popupMaxAge = 3500 * time.Millisecond
 const (
@@ -22,13 +23,14 @@ type orderIdPair struct {
 }
 
 type XHandler struct {
-	X               *xgbutil.XUtil
-	popups          map[uint32]*Popup
-	Wrapper         *HandlerWrapper
-	uid             uint
-	removeChan      chan uint32
-	popupRemoveChan chan orderIdPair
-	actionChan      chan int
+	X                 *xgbutil.XUtil
+	popups            map[uint32]*Popup
+	Wrapper           *HandlerWrapper
+	uid               uint
+	removeChan        chan uint32
+	popupRemoveChan   chan orderIdPair
+	actionChan        chan int
+	closeShowAllTimer *timer.Timer
 }
 
 func NewXHandler() *XHandler {
@@ -39,11 +41,12 @@ func NewXHandler() *XHandler {
 	mousebind.Initialize(X)
 	keybind.Initialize(X)
 	handler := &XHandler{
-		X:               X,
-		popups:          map[uint32]*Popup{},
-		removeChan:      make(chan uint32),
-		popupRemoveChan: make(chan orderIdPair),
-		actionChan:      make(chan int),
+		X:                 X,
+		popups:            map[uint32]*Popup{},
+		removeChan:        make(chan uint32),
+		popupRemoveChan:   make(chan orderIdPair),
+		actionChan:        make(chan int),
+		closeShowAllTimer: timer.NewTimer(0),
 	}
 
 	showAllCb := keybind.KeyPressFun(func(X *xgbutil.XUtil, ev xevent.KeyPressEvent) {
@@ -107,14 +110,24 @@ func (h *XHandler) repaint() {
 	for _, id := range ids {
 		popup := h.popups[id]
 		popup.Move(x, height)
-		height += popup.height
-		height += padding
+		height += popup.height - 2
 	}
 }
 
 func (h *XHandler) Loop() {
 	for {
 		select {
+		case <-h.closeShowAllTimer.C:
+			for _, popup := range h.popups {
+				// close all non-critical notifications
+				if popup.notification.Hints.Urgency != UrgencyCritical {
+					id := popup.notification.Id
+					order := popup.order
+					go func() {
+						h.popupRemoveChan <- orderIdPair{id, order}
+					}()
+				}
+			}
 		case id := <-h.removeChan:
 			popup := h.popups[id]
 			if popup != nil {
@@ -135,16 +148,11 @@ func (h *XHandler) Loop() {
 			case ActionRepaint:
 				h.repaint()
 			case ActionShowAll:
+				h.closeShowAllTimer.Reset(popupMaxAge)
 				for _, popup := range h.popups {
 					if !popup.Shown() {
 						popup.Update(popup.notification)
 						h.bindPopupClose(popup)
-						id := popup.notification.Id
-						order := popup.order
-						go func() {
-							time.Sleep(popupMaxAge)
-							h.popupRemoveChan <- orderIdPair{id, order}
-						}()
 					}
 				}
 				h.repaint()
