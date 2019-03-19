@@ -19,6 +19,7 @@ func main() {
 	service := NewService(conn, wrapper)
 	handler.Wrapper = wrapper
 	go wrapper.Loop()
+	go handler.Loop()
 	err = conn.Export(service, "/org/freedesktop/Notifications", "org.freedesktop.Notifications")
 	if err != nil {
 		panic(err)

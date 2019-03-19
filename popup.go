@@ -5,6 +5,7 @@ import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xgraphics"
 import "github.com/BurntSushi/xgbutil/xwindow"
 import "github.com/BurntSushi/xgbutil/ewmh"
+import "github.com/BurntSushi/xgbutil/mousebind"
 
 // TODO: use config file for these
 const notificationWidth = 300
@@ -73,5 +74,15 @@ func (p *Popup) Update(n *Notification) {
 }
 
 func (p *Popup) Move(x, y int) {
-	p.window.Move(x, y)
+	if p.window != nil {
+		p.window.Move(x, y)
+	}
+}
+
+func (p *Popup) Close() {
+	if p.window != nil {
+		mousebind.Detach(p.x, p.window.Id)
+		p.window.Destroy()
+		p.window = nil
+	}
 }
