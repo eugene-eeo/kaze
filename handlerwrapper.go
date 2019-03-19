@@ -52,6 +52,10 @@ func (h *HandlerWrapper) HandleClose(id uint32) *dbus.Error {
 func (h *HandlerWrapper) HandleTimeout(id uint32) {
 }
 
+func (h *HandlerWrapper) ActionInvoked(id uint32, action_key string) {
+	h.conn.Emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications.ActionInvoked", id, action_key)
+}
+
 func (h *HandlerWrapper) emitNotificationClosed(id uint32) {
 	h.conn.Emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications.NotificationClosed", id)
 }

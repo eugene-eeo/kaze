@@ -62,7 +62,7 @@ func NewXHandler() *XHandler {
 }
 
 func (_ *XHandler) Capabilities() []string {
-	return []string{"body", "actions"}
+	return []string{"body", "actions", "persistence"}
 }
 
 func (h *XHandler) bindPopupClose(p *Popup) {
