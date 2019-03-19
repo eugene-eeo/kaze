@@ -4,9 +4,9 @@ import "bytes"
 import "strings"
 import "os/exec"
 
-func execUserSelector(chunks []string) string {
+func execUserSelector(command []string, chunks []string) string {
 	out := bytes.Buffer{}
-	cmd := exec.Command("slouch", "pipe")
+	cmd := exec.Command(command[0], command[1:]...)
 	cmd.Stdin = strings.NewReader(strings.Join(chunks, "\n"))
 	cmd.Stdout = &out
 	cmd.Run()
@@ -19,19 +19,25 @@ func execUserSelector(chunks []string) string {
 	return s
 }
 
-func execActionsSelect(actions []NotificationAction) string {
-	chunks := make([]string, len(actions))
-	for i, action := range actions {
-		chunks[i] = action.Key + "\t" + action.Value
+func execMixedSelector(actions []NotificationAction, links []Hyperlink, actionsCallback func(string)) {
+	chunks := make([]string, len(actions)+len(links))
+	i := 0
+	for _, action := range actions {
+		chunks[i] = "action\t" + action.Key + "\t" + action.Value
+		i++
 	}
-	return strings.SplitN(execUserSelector(chunks), "\t", 2)[0]
-}
-
-func execLinkSelect(links []Hyperlink) {
-	chunks := make([]string, len(links))
-	for i, link := range links {
-		chunks[i] = link.Text + "\t" + link.Href
+	for _, link := range links {
+		chunks[i] = "link\t" + link.Text + "\t" + link.Href
+		i++
 	}
-	link := strings.SplitN(execUserSelector(chunks), "\t", 2)[1]
-	exec.Command("xdg-open", link).Run()
+	choice := execUserSelector([]string{"slouch", "pipe"}, chunks)
+	selection := strings.SplitN(choice, "\t", 3)
+	if len(selection) == 3 {
+		switch selection[0] {
+		case "action":
+			actionsCallback(selection[1])
+		case "link":
+			exec.Command("xdg-open", selection[2]).Run()
+		}
+	}
 }

@@ -94,19 +94,11 @@ func (h *XHandler) bindMousekeys(p *Popup) {
 	})
 	// actions
 	actions := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) {
-		go func() {
-			action := execActionsSelect(p.notification.Actions)
-			if len(action) > 0 {
-				h.actionInvokedChan <- actionIdPair{p.notification.Id, action}
-			}
-		}()
-	})
-	// links
-	links := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) {
-		go execLinkSelect(p.links)
+		go execMixedSelector(p.notification.Actions, p.links, func(action_key string) {
+			h.actionInvokedChan <- actionIdPair{p.notification.Id, action_key}
+		})
 	})
 	closeWindow.Connect(h.X, p.window.Id, "3", false, true)
-	links.Connect(h.X, p.window.Id, "Shift-1", false, true)
 	actions.Connect(h.X, p.window.Id, "1", false, true)
 }
 
