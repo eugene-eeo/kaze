@@ -56,7 +56,6 @@ func NewPopup(x *xgbutil.XUtil, order uint, n *Notification) *Popup {
 	p.x = x
 	p.order = order
 	p.Update(n)
-	ewmh.WmWindowTypeSet(x, p.window.Id, []string{"_NET_WM_WINDOW_TYPE_NOTIFICATION"})
 	return p
 }
 
@@ -69,6 +68,9 @@ func (p *Popup) Update(n *Notification) {
 	ximg := ximgFromNotification(p.x, n)
 	p.window = ximg.XShow()
 	p.height = ximg.Rect.Max.Y
+	// care: this should be done before drawing anything because otherwise
+	// we would get some glitch
+	ewmh.WmWindowTypeSet(p.x, p.window.Id, []string{"_NET_WM_WINDOW_TYPE_NOTIFICATION"})
 	ximg.XDraw()
 	ximg.XPaint(p.window.Id)
 }

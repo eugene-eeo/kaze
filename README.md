@@ -9,9 +9,8 @@ Then you hit a keybinding to view/close notifications.
 ## roadmap
 
  - [x] draw notification in X window
- - [ ] close popups automatically
- - [ ] refactoring needed!
- - [ ] view all notifications
+ - [x] close popups automatically
+ - [x] view all notifications
  - [ ] support actions
  - [ ] config file
  - [ ] _maybe:_
