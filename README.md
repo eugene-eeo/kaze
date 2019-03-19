@@ -13,7 +13,7 @@ Then you hit a keybinding to view/close notifications.
  - [x] view all notifications
  - [x] support actions
  - [x] support hyperlinks
- - [ ] render notifications properly
+ - [x] render notifications properly
  - [ ] config file
  - [ ] _maybe:_
    - [ ] sound support
