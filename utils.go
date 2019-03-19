@@ -53,6 +53,7 @@ func mustReadFont(path string) *truetype.Font {
 	if err != nil {
 		panic(err)
 	}
+	defer fontReader.Close()
 	font, err := xgraphics.ParseFont(fontReader)
 	return xgraphics.MustFont(font, err)
 }
