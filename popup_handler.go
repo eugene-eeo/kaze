@@ -1,6 +1,5 @@
 package main
 
-import "fmt"
 import "time"
 import "sort"
 
@@ -18,6 +17,11 @@ const (
 	ActionRepaint
 )
 
+type actionIdPair struct {
+	id  uint32
+	key string
+}
+
 type orderIdPair struct {
 	id    uint32
 	order uint
@@ -31,6 +35,7 @@ type XHandler struct {
 	removeChan        chan uint32
 	popupRemoveChan   chan orderIdPair
 	actionChan        chan int
+	actionInvokedChan chan actionIdPair
 	closeShowAllTimer *timer.Timer
 }
 
@@ -47,6 +52,7 @@ func NewXHandler() *XHandler {
 		removeChan:        make(chan uint32),
 		popupRemoveChan:   make(chan orderIdPair),
 		actionChan:        make(chan int),
+		actionInvokedChan: make(chan actionIdPair),
 		closeShowAllTimer: timer.NewTimer(0),
 	}
 
@@ -88,13 +94,20 @@ func (h *XHandler) bindMousekeys(p *Popup) {
 	})
 	// actions
 	actions := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) {
-		fmt.Println("clicked")
-		for _, action := range p.notification.Actions {
-			fmt.Printf("%s: %s\n", action.Key, action.Value)
-		}
+		go func() {
+			action := execActionsSelect(p.notification.Actions)
+			if len(action) > 0 {
+				h.actionInvokedChan <- actionIdPair{p.notification.Id, action}
+			}
+		}()
 	})
-	closeWindow.Connect(h.X, p.window.Id, "1", false, true)
-	actions.Connect(h.X, p.window.Id, "3", false, true)
+	// links
+	links := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) {
+		go execLinkSelect(p.links)
+	})
+	closeWindow.Connect(h.X, p.window.Id, "3", false, true)
+	links.Connect(h.X, p.window.Id, "Shift-1", false, true)
+	actions.Connect(h.X, p.window.Id, "1", false, true)
 }
 
 func (h *XHandler) HandleNotification(n *Notification) {
@@ -190,6 +203,14 @@ func (h *XHandler) Loop() {
 						h.Wrapper.SilentNotificationClose(popup.notification.Id)
 						h.HandleClose(popup.notification.Id)
 					}()
+				}
+			}
+		case pair := <-h.actionInvokedChan:
+			if popup, ok := h.popups[pair.id]; ok {
+				h.Wrapper.ActionInvoked(pair.id, pair.key)
+				if !popup.notification.Hints.Resident {
+					popup.Close()
+					delete(h.popups, pair.id)
 				}
 			}
 		}

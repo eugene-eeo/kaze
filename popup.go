@@ -19,14 +19,14 @@ var fg = xgraphics.BGRA{B: 0xff, G: 0xff, R: 0xff, A: 0xff}
 var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
 var bgUrgent = xgraphics.BGRA{B: 0x00, G: 0x11, R: 0x66, A: 0xff}
 
-func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
+func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgraphics.Image {
 	fontWidthOracle := func(s string) int {
 		w, _ := xgraphics.Extents(font, fontSize, s)
 		return w
 	}
 
 	summary := maxWidth(fmt.Sprintf("%s: %s", n.AppName, n.Summary), notificationWidth, fontWidthOracle)
-	bodyText := maxWidth(n.Body, notificationWidth, fontWidthOracle)
+	bodyText := maxWidth(body, notificationWidth, fontWidthOracle)
 
 	_, firsth := xgraphics.Extents(font, fontSize, summary)
 	_, sech := xgraphics.Extents(font, fontSize, bodyText)
@@ -49,6 +49,7 @@ type Popup struct {
 	window       *xwindow.Window
 	notification *Notification
 	x            *xgbutil.XUtil
+	links        []Hyperlink
 }
 
 func NewPopup(x *xgbutil.XUtil, order uint, n *Notification) *Popup {
@@ -65,7 +66,9 @@ func (p *Popup) Shown() bool {
 
 func (p *Popup) Update(n *Notification) {
 	p.notification = n
-	ximg := ximgFromNotification(p.x, n)
+	body, links := TextInfoFromString(n.Body)
+	ximg := ximgFromNotification(p.x, n, body)
+	p.links = links
 	p.window = ximg.XShow()
 	p.height = ximg.Rect.Max.Y
 	// care: this should be done before drawing anything because otherwise

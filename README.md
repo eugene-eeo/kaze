@@ -11,7 +11,9 @@ Then you hit a keybinding to view/close notifications.
  - [x] draw notification in X window
  - [x] close popups automatically
  - [x] view all notifications
- - [ ] support actions
+ - [x] support actions
+ - [x] support hyperlinks
+ - [ ] render notifications properly
  - [ ] config file
  - [ ] _maybe:_
    - [ ] sound support
