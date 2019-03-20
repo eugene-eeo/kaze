@@ -4,22 +4,18 @@ import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xgraphics"
 import "github.com/BurntSushi/xgbutil/xwindow"
 import "github.com/BurntSushi/xgbutil/ewmh"
-import "github.com/BurntSushi/xgbutil/mousebind"
 
 var (
 	fontBold    = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf")
 	fontRegular = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf")
 )
 
-//var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
-//var bgUrgent = xgraphics.BGRA{B: 0x00, G: 0x11, R: 0x66, A: 0xff}
-
 type TextLine struct {
 	Text   string
 	Height int
 }
 
-func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgraphics.Image {
+func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
 	key := "low"
 	switch n.Hints.Urgency {
 	case UrgencyCritical:
@@ -49,6 +45,7 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgrap
 
 	chunks := []TextLine{}
 	height := firsth
+	body := n.Body.Text
 
 	for {
 		text := maxWidth(body, notificationWidth, fontWidthOracle)
@@ -81,15 +78,16 @@ type Popup struct {
 }
 
 func NewPopup(x *xgbutil.XUtil, order uint, n *Notification) *Popup {
-	p := &Popup{}
-	p.x = x
-	p.order = order
-	p.Update(n)
+	p := &Popup{x: x, order: order}
+	ximg := ximgFromNotification(p.x, n)
+	p.notification = n
+	p.window = ximg.XShow()
+	// care: this should be done before drawing anything because otherwise
+	// we would get some glitch
+	ewmh.WmWindowTypeSet(p.x, p.window.Id, []string{"_NET_WM_WINDOW_TYPE_NOTIFICATION"})
+	ximg.XDraw()
+	ximg.XPaint(p.window.Id)
 	return p
-}
-
-func (p *Popup) Shown() bool {
-	return p.window != nil
 }
 
 func (p *Popup) Height() int {
@@ -98,28 +96,17 @@ func (p *Popup) Height() int {
 }
 
 func (p *Popup) Update(n *Notification) {
-	p.notification = n
-	body, links := TextInfoFromString(n.Body)
-	ximg := ximgFromNotification(p.x, n, body)
-	p.links = links
-	p.window = ximg.XShow()
-	// care: this should be done before drawing anything because otherwise
-	// we would get some glitch
-	ewmh.WmWindowTypeSet(p.x, p.window.Id, []string{"_NET_WM_WINDOW_TYPE_NOTIFICATION"})
+	ximg := ximgFromNotification(p.x, n)
+	ximg.Window(p.window.Id)
 	ximg.XDraw()
 	ximg.XPaint(p.window.Id)
 }
 
 func (p *Popup) Move(x, y int) {
-	if p.window != nil {
-		p.window.Move(x, y)
-	}
+	p.window.Move(x, y)
 }
 
 func (p *Popup) Close() {
-	if p.window != nil {
-		mousebind.Detach(p.x, p.window.Id)
-		p.window.Destroy()
-		p.window = nil
-	}
+	p.window.Detach()
+	p.window.Destroy()
 }

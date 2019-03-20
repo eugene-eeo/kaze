@@ -1,7 +1,7 @@
 [core]
 context_menu = ["slouch", "pipe"]
 link_opener  = ["pdetach", "xdg-open"]
-maxage = "10m"
+maxage = "10s"
 maxpopupage = "5s"
 width = 300
 x_offset = 1588

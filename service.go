@@ -22,12 +22,17 @@ type NotificationHints struct {
 	Urgency  Urgency
 }
 
+type ParsedBody struct {
+	Text       string
+	Hyperlinks []Hyperlink
+}
+
 type Notification struct {
 	Id            uint32
 	AppName       string
 	AppIcon       string
 	Summary       string
-	Body          string
+	Body          ParsedBody
 	Hints         NotificationHints
 	Actions       []NotificationAction
 	ExpireTimeout int32
@@ -76,10 +81,10 @@ type Service struct {
 	id      uint32
 	conn    *dbus.Conn
 	lock    sync.Mutex
-	handler NotificationHandler
+	handler *EventHandler
 }
 
-func NewService(conn *dbus.Conn, handler NotificationHandler) *Service {
+func NewService(conn *dbus.Conn, handler *EventHandler) *Service {
 	return &Service{
 		conn:    conn,
 		handler: handler,
@@ -95,7 +100,18 @@ func (s *Service) GetServerInformation() (string, string, string, string, *dbus.
 }
 
 func (s *Service) GetCapabilities() ([]string, *dbus.Error) {
-	return s.handler.Capabilities(), nil
+	return []string{
+		"body",
+		"actions",
+		"persistence",
+		"action-icons",
+		"body-hyperlinks",
+		"body-images",
+		"body-markup",
+		"icon-multi",
+		"icon-static",
+		"sound",
+	}, nil
 }
 
 func (s *Service) Notify(appName string, replacesId uint32, appIcon string, summary string, body string, actions []string, hints map[string]dbus.Variant, expireTimeout int32) (uint32, *dbus.Error) {
@@ -110,12 +126,13 @@ func (s *Service) Notify(appName string, replacesId uint32, appIcon string, summ
 		id = s.id
 		s.lock.Unlock()
 	}
+	text, links := TextInfoFromString(body)
 	s.handler.HandleNotification(&Notification{
 		Id:            id,
 		AppName:       appName,
 		AppIcon:       appIcon,
 		Summary:       summary,
-		Body:          body,
+		Body:          ParsedBody{text, links},
 		Actions:       convertRawActions(actions),
 		Hints:         convertRawHints(hints),
 		ExpireTimeout: expireTimeout,

@@ -6,8 +6,8 @@ import "github.com/eugene-eeo/kaze/config"
 var conf *config.Config
 
 func main() {
-	c, err := config.ConfigFromFile("kaze.toml")
-	conf = c
+	var err error
+	conf, err = config.ConfigFromFile("kaze.toml")
 	if err != nil {
 		panic(err)
 	}
@@ -22,12 +22,7 @@ func main() {
 	if reply != dbus.RequestNameReplyPrimaryOwner {
 		panic("Name already taken")
 	}
-	handler := NewXHandler()
-	wrapper := WrapHandler(conn, handler)
-	service := NewService(conn, wrapper)
-	handler.Wrapper = wrapper
-	go wrapper.Loop()
-	go handler.Loop()
+	service := NewService(conn, NewEventHandler(conn))
 	err = conn.Export(service, "/org/freedesktop/Notifications", "org.freedesktop.Notifications")
 	if err != nil {
 		panic(err)
