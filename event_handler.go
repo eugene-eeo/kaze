@@ -18,6 +18,7 @@ const (
 	ActionContextMenu
 
 	ExpiryTimeout = ExpiryType(iota)
+	ExpiryAction
 	ExpiryPopup
 )
 
@@ -123,8 +124,8 @@ func NewEventHandler(conn *dbus.Conn) *EventHandler {
 	return &ev
 }
 
-func (e *EventHandler) handleTimeout(id uint32) {
-	e.conn.Emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications.NotificationClosed", id)
+func (e *EventHandler) EmitClosed(id uint32, reason uint32) {
+	e.conn.Emit("/org/freedesktop/Notifications", "org.freedesktop.Notifications.NotificationClosed", id, reason)
 }
 
 func (e *EventHandler) EmitAction(id uint32, action_key string) {
@@ -155,6 +156,14 @@ func (e *EventHandler) GetCloseFunc() func(*Notification) {
 	}
 }
 
+func (e *EventHandler) deleteNotification(id uint32, uid uint, reason uint32) {
+	t := e.timers[id]
+	delete(e.timers, id)
+	go t.Stop()
+	e.display.Destroy(uid)
+	e.EmitClosed(id, reason)
+}
+
 func (e *EventHandler) Loop() {
 	for {
 		select {
@@ -178,7 +187,7 @@ func (e *EventHandler) Loop() {
 			t := e.timers[n.Id]
 			if t != nil {
 				// We have seen this before, so stop the current timers
-				t.Stop()
+				go t.Stop()
 				old = t.Uid
 			}
 			e.display.Show(old, uid, n, e.GetContextMenuFunc(), e.GetCloseFunc())
@@ -201,11 +210,10 @@ func (e *EventHandler) Loop() {
 			t := e.timers[exp.Id]
 			if t != nil && t.Uid == exp.Target {
 				switch exp.Type {
+				case ExpiryAction:
+					e.deleteNotification(exp.Id, exp.Target, 4)
 				case ExpiryTimeout:
-					delete(e.timers, exp.Id)
-					t.Stop()
-					e.display.Destroy(exp.Target)
-					e.handleTimeout(exp.Id)
+					e.deleteNotification(exp.Id, exp.Target, 1)
 				case ExpiryPopup:
 					e.display.Close(exp.Target)
 				}
@@ -223,21 +231,21 @@ func (e *EventHandler) Loop() {
 				e.display.Draw()
 			case ActionCloseOne:
 				if t := e.timers[a.Target]; t != nil {
-					t.TimeoutTimer.Reset(0)
+					e.deleteNotification(a.Target, t.Uid, 2)
 				}
 			case ActionContextMenu:
 				if t := e.timers[a.Target]; t != nil {
 					go execMixedSelector(t.Notification.Actions, t.Notification.Body.Hyperlinks, func(action_key string) {
 						e.EmitAction(t.Notification.Id, action_key)
+						if !t.Notification.Hints.Resident {
+							e.expiryChan <- Expiry{ExpiryAction, a.Target, t.Uid}
+						}
 					})
 				}
 			}
 		case id := <-e.closeChan:
 			if t, ok := e.timers[id]; ok {
-				delete(e.timers, id)
-				t.Stop()
-				e.display.Destroy(t.Uid)
-				e.handleTimeout(id)
+				e.deleteNotification(id, t.Uid, 3)
 				e.closedChan <- true
 			} else {
 				e.closedChan <- false
