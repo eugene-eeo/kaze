@@ -30,6 +30,10 @@ func execMixedSelector(actions []NotificationAction, links []Hyperlink, actionsC
 		chunks[i] = "link\t" + link.Text + "\t" + link.Href
 		i++
 	}
+	if i == 0 {
+		actionsCallback("")
+		return
+	}
 	choice := execUserSelector(conf.Core.ContextMenuProgram, chunks)
 	selection := strings.SplitN(choice, "\t", 3)
 	if len(selection) == 3 {

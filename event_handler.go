@@ -2,11 +2,11 @@ package main
 
 import "time"
 import "github.com/godbus/dbus"
-import "github.com/desertbit/timer"
 import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xevent"
 import "github.com/BurntSushi/xgbutil/mousebind"
 import "github.com/BurntSushi/xgbutil/keybind"
+import "github.com/eugene-eeo/kaze/tctx"
 
 type ExpiryType int
 type ActionType int
@@ -33,46 +33,9 @@ type Action struct {
 	Target uint32
 }
 
-type Timers struct {
+type UidPair struct {
 	Uid          uint
 	Notification *Notification
-	TimeoutTimer *timer.Timer
-	PopupTimer   *timer.Timer
-	StopNow      chan struct{}
-}
-
-func NewTimers(uid uint, n *Notification, d time.Duration, p time.Duration) *Timers {
-	t := &Timers{
-		Uid:          uid,
-		Notification: n,
-		StopNow:      make(chan struct{}),
-	}
-	if d < 0 {
-		t.TimeoutTimer = timer.NewStoppedTimer()
-	} else {
-		t.TimeoutTimer = timer.NewTimer(d)
-	}
-	if p < 0 {
-		t.PopupTimer = timer.NewStoppedTimer()
-	} else {
-		t.PopupTimer = timer.NewTimer(p)
-	}
-	return t
-}
-
-func (t *Timers) Stop() {
-	t.PopupTimer.Stop()
-	t.TimeoutTimer.Stop()
-	t.StopNow <- struct{}{}
-}
-
-func (t *Timers) Reset(d time.Duration, p time.Duration) {
-	t.PopupTimer.Reset(p)
-	if d < 0 {
-		t.TimeoutTimer = timer.NewStoppedTimer()
-	} else {
-		t.TimeoutTimer.Reset(d)
-	}
 }
 
 type EventHandler struct {
@@ -83,7 +46,8 @@ type EventHandler struct {
 	actionChan       chan Action
 	expiryChan       chan Expiry
 	notificationChan chan *Notification
-	timers           map[uint32]*Timers
+	pairs            map[uint32]*UidPair
+	expiries         map[uint]Expiry
 	display          *PopupDisplay
 }
 
@@ -102,7 +66,8 @@ func NewEventHandler(conn *dbus.Conn) *EventHandler {
 		expiryChan:       make(chan Expiry),
 		actionChan:       make(chan Action),
 		notificationChan: make(chan *Notification),
-		timers:           map[uint32]*Timers{},
+		pairs:            map[uint32]*UidPair{},
+		expiries:         map[uint]Expiry{},
 		display: &PopupDisplay{
 			x:      X,
 			active: map[uint]*Popup{},
@@ -157,11 +122,24 @@ func (e *EventHandler) GetCloseFunc() func(*Notification) {
 }
 
 func (e *EventHandler) deleteNotification(id uint32, uid uint, reason uint32) {
-	t := e.timers[id]
-	delete(e.timers, id)
-	go t.Stop()
+	delete(e.pairs, id)
 	e.display.Destroy(uid)
 	e.EmitClosed(id, reason)
+}
+
+func (e *EventHandler) handleExpiry(exp Expiry) {
+	t := e.pairs[exp.Id]
+	if t != nil && t.Uid == exp.Target {
+		switch exp.Type {
+		case ExpiryAction:
+			e.deleteNotification(exp.Id, exp.Target, 4)
+		case ExpiryTimeout:
+			e.deleteNotification(exp.Id, exp.Target, 1)
+		case ExpiryPopup:
+			e.display.Close(exp.Target)
+		}
+		e.display.Draw()
+	}
 }
 
 func (e *EventHandler) Loop() {
@@ -184,55 +162,44 @@ func (e *EventHandler) Loop() {
 			e.nextUid++
 			old := e.nextUid
 			uid := e.nextUid
-			t := e.timers[n.Id]
+			t := e.pairs[n.Id]
 			if t != nil {
-				// We have seen this before, so stop the current timers
-				go t.Stop()
+				// We have seen this before
 				old = t.Uid
 			}
+			// add expiries
+			e.expiries[tctx.Request(maxAge)] = Expiry{ExpiryPopup, n.Id, uid}
+			e.expiries[tctx.Request(maxTimeout)] = Expiry{ExpiryTimeout, n.Id, uid}
+			// show
 			e.display.Show(old, uid, n, e.GetContextMenuFunc(), e.GetCloseFunc())
-			t = NewTimers(uid, n, maxTimeout, maxAge)
-			go func(uid uint) {
-				for {
-					select {
-					case <-t.TimeoutTimer.C:
-						e.expiryChan <- Expiry{ExpiryTimeout, n.Id, uid}
-					case <-t.PopupTimer.C:
-						e.expiryChan <- Expiry{ExpiryPopup, n.Id, uid}
-					case <-t.StopNow:
-						break
-					}
-				}
-			}(t.Uid)
-			e.timers[n.Id] = t
+			e.pairs[n.Id] = &UidPair{uid, n}
 			e.display.Draw()
+
+		case id := <-tctx.Listen():
+			e.handleExpiry(e.expiries[id])
+			delete(e.expiries, id)
+
 		case exp := <-e.expiryChan:
-			t := e.timers[exp.Id]
-			if t != nil && t.Uid == exp.Target {
-				switch exp.Type {
-				case ExpiryAction:
-					e.deleteNotification(exp.Id, exp.Target, 4)
-				case ExpiryTimeout:
-					e.deleteNotification(exp.Id, exp.Target, 1)
-				case ExpiryPopup:
-					e.display.Close(exp.Target)
-				}
-				e.display.Draw()
-			}
+			e.handleExpiry(exp)
+
 		case a := <-e.actionChan:
 			switch a.Type {
 			case ActionShowAll:
-				for _, t := range e.timers {
+				for _, t := range e.pairs {
 					e.display.Show(t.Uid, t.Uid, t.Notification, e.GetContextMenuFunc(), e.GetCloseFunc())
 					if t.Notification.Hints.Urgency != UrgencyCritical {
-						t.PopupTimer.Reset(conf.Core.MaxPopupAge.Duration)
+						e.expiries[tctx.Request(conf.Core.MaxPopupAge.Duration)] = Expiry{
+							Type:   ExpiryPopup,
+							Id:     t.Notification.Id,
+							Target: t.Uid,
+						}
 					}
 				}
 				e.display.Draw()
 			case ActionCloseLatest:
 				target := uint32(0)
 				uid := uint(0)
-				for id, t := range e.timers {
+				for id, t := range e.pairs {
 					if t.Uid > uid {
 						uid = t.Uid
 						target = id
@@ -242,13 +209,15 @@ func (e *EventHandler) Loop() {
 					e.deleteNotification(target, uid, 2)
 				}
 			case ActionCloseOne:
-				if t := e.timers[a.Target]; t != nil {
+				if t := e.pairs[a.Target]; t != nil {
 					e.deleteNotification(a.Target, t.Uid, 2)
 				}
 			case ActionContextMenu:
-				if t := e.timers[a.Target]; t != nil {
+				if t := e.pairs[a.Target]; t != nil {
 					go execMixedSelector(t.Notification.Actions, t.Notification.Body.Hyperlinks, func(action_key string) {
-						e.EmitAction(t.Notification.Id, action_key)
+						if len(action_key) > 0 {
+							e.EmitAction(t.Notification.Id, action_key)
+						}
 						if !t.Notification.Hints.Resident {
 							e.expiryChan <- Expiry{ExpiryAction, a.Target, t.Uid}
 						}
@@ -256,7 +225,7 @@ func (e *EventHandler) Loop() {
 				}
 			}
 		case id := <-e.closeChan:
-			if t, ok := e.timers[id]; ok {
+			if t, ok := e.pairs[id]; ok {
 				e.deleteNotification(id, t.Uid, 3)
 				e.closedChan <- true
 			} else {
