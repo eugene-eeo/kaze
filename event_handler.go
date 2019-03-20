@@ -229,6 +229,19 @@ func (e *EventHandler) Loop() {
 					}
 				}
 				e.display.Draw()
+			case ActionCloseLatest:
+				target := uint32(0)
+				uid := uint(0)
+				for id, t := range e.timers {
+					if t.Uid > uid {
+						uid = t.Uid
+						target = id
+					}
+				}
+				if target != 0 {
+					e.deleteNotification(target, uid, 2)
+					e.display.Draw()
+				}
 			case ActionCloseOne:
 				if t := e.timers[a.Target]; t != nil {
 					e.deleteNotification(a.Target, t.Uid, 2)

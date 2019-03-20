@@ -18,8 +18,8 @@ func bindMouseCallbacks(X *xgbutil.XUtil, popup *Popup, ctxMenuFunc func(*Notifi
 }
 
 func (p *PopupDisplay) Show(old uint, uid uint, n *Notification, ctxMenuFunc func(*Notification), closeFunc func(*Notification)) {
-	popup, ok := p.active[old]
-	if !ok || popup == nil {
+	popup := p.active[old]
+	if popup == nil {
 		// not seen before
 		popup = NewPopup(p.x, uid, n)
 		bindMouseCallbacks(p.x, popup, ctxMenuFunc, closeFunc)
