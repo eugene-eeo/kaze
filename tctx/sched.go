@@ -1,20 +1,20 @@
 package tctx
 
 import "time"
+import "container/heap"
 
 type pair struct {
 	id uint
-	rt time.Duration
+	te time.Time
 }
 
 type tctx struct {
 	id       uint
 	timer    *time.Timer
-	reqs     []*pair
+	reqs     *pairHeap
 	doneChan chan uint
 	idChan   chan uint
 	reqChan  chan time.Duration
-	tprev    time.Time
 }
 
 func (tc *tctx) GetUid(d time.Duration) uint {
@@ -27,7 +27,7 @@ func (tc *tctx) handleRequest(d time.Duration) {
 	if tc.id == 0 {
 		tc.id++
 	}
-	tc.reqs = append(tc.reqs, &pair{tc.id, d})
+	heap.Push(tc.reqs, pair{tc.id, time.Now().Add(d)})
 	if tc.timer == nil {
 		tc.timer = time.NewTimer(d)
 	}
@@ -35,31 +35,19 @@ func (tc *tctx) handleRequest(d time.Duration) {
 }
 
 func (tc *tctx) handleTimeout(t time.Time) {
-	n := 0 // number of expired requests
-	m := time.Duration(0)
-	dt := t.Sub(tc.tprev)
-	for i := len(tc.reqs) - 1; i >= 0; i-- {
-		r := tc.reqs[i]
-		r.rt -= dt
-		if r.rt <= 0 {
-			tc.doneChan <- r.id
-			// delete this element
-			copy(tc.reqs[i:], tc.reqs[i+1:])
-			tc.reqs[len(tc.reqs)-1] = nil
-			tc.reqs = tc.reqs[:len(tc.reqs)-1]
+	for len(tc.reqs.s) > 0 {
+		p := tc.reqs.s[0]
+		if p.te.Before(t) || p.te.Equal(t) {
+			tc.doneChan <- p.id
+			heap.Pop(tc.reqs)
 		} else {
-			if n == 0 || r.rt < m {
-				m = r.rt
-			}
-			n++
+			m := p.te.Sub(t)
+			tc.timer = time.NewTimer(m)
+			return
 		}
 	}
-	tc.tprev = t
 	tc.timer.Stop()
 	tc.timer = nil
-	if n > 0 {
-		tc.timer = time.NewTimer(m)
-	}
 }
 
 func (tc *tctx) Loop() {

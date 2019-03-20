@@ -8,11 +8,10 @@ func init() {
 	ctx = &tctx{
 		id:       0,
 		timer:    nil,
-		reqs:     []*pair{},
+		reqs:     &pairHeap{[]pair{}},
 		doneChan: make(chan uint),
 		idChan:   make(chan uint),
 		reqChan:  make(chan time.Duration),
-		tprev:    time.Now(),
 	}
 	go ctx.Loop()
 }
