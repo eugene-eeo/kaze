@@ -10,7 +10,6 @@ import "github.com/BurntSushi/xgbutil/mousebind"
 import "github.com/BurntSushi/xgbutil/keybind"
 import "github.com/desertbit/timer"
 
-const popupMaxAge = 3500 * time.Millisecond
 const (
 	ActionShowAll = iota
 	ActionCloseLatest
@@ -110,11 +109,13 @@ func (h *XHandler) HandleNotification(n *Notification) {
 		popup = NewPopup(h.X, h.uid, n)
 		h.popups[n.Id] = popup
 		h.bindMousekeys(popup)
-		uid := h.uid
-		go func() {
-			time.Sleep(popupMaxAge)
-			h.popupRemoveChan <- orderIdPair{n.Id, uid}
-		}()
+		if n.Hints.Urgency != UrgencyCritical {
+			uid := h.uid
+			go func() {
+				time.Sleep(conf.Core.MaxPopupAge.Duration)
+				h.popupRemoveChan <- orderIdPair{n.Id, uid}
+			}()
+		}
 	} else {
 		popup.Update(n)
 	}
@@ -128,14 +129,18 @@ func (h *XHandler) repaint() {
 			ids = append(ids, id)
 		}
 	}
-	sort.Slice(ids, func(i, j int) bool {
-		return h.popups[ids[i]].order > h.popups[ids[j]].order
+	sort.SliceStable(ids, func(i, j int) bool {
+		a := h.popups[ids[i]]
+		b := h.popups[ids[j]]
+		if a.notification.Hints.Urgency > b.notification.Hints.Urgency {
+			return true
+		}
+		return a.order > b.order
 	})
-	height := 20 + padding
-	x := monitorWidth - (notificationWidth + 2*padding + 2*2) - 10
+	height := conf.Core.YOffset
 	for _, id := range ids {
 		popup := h.popups[id]
-		popup.Move(x, height)
+		popup.Move(conf.Core.XOffset, height)
 		height += popup.Height() - 2
 	}
 }
@@ -147,9 +152,7 @@ func (h *XHandler) Loop() {
 			for _, popup := range h.popups {
 				// close all non-critical notifications
 				if popup.notification.Hints.Urgency != UrgencyCritical && popup.Shown() {
-					go func() {
-						h.popupRemoveChan <- orderIdPair{popup.notification.Id, popup.order}
-					}()
+					popup.Close()
 				}
 			}
 		case id := <-h.removeChan:
@@ -172,7 +175,7 @@ func (h *XHandler) Loop() {
 			case ActionRepaint:
 				h.repaint()
 			case ActionShowAll:
-				h.closeShowAllTimer.Reset(popupMaxAge)
+				h.closeShowAllTimer.Reset(conf.Core.MaxPopupAge.Duration)
 				for _, popup := range h.popups {
 					if !popup.Shown() {
 						popup.Update(popup.notification)

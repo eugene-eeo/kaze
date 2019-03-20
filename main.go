@@ -1,8 +1,16 @@
 package main
 
 import "github.com/godbus/dbus"
+import "github.com/eugene-eeo/kaze/config"
+
+var conf *config.Config
 
 func main() {
+	c, err := config.ConfigFromFile("kaze.toml")
+	conf = c
+	if err != nil {
+		panic(err)
+	}
 	conn, err := dbus.SessionBus()
 	if err != nil {
 		panic(err)

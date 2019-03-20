@@ -3,10 +3,12 @@ package main
 import "github.com/godbus/dbus"
 import "sync"
 
+type Urgency byte
+
 const (
-	UrgencyCritical = 2
-	UrgencyNormal   = 1
-	UrgencyLow      = 0
+	UrgencyCritical = Urgency(2)
+	UrgencyNormal   = Urgency(1)
+	UrgencyLow      = Urgency(0)
 )
 
 type NotificationAction struct {
@@ -17,7 +19,7 @@ type NotificationAction struct {
 type NotificationHints struct {
 	Category string
 	Resident bool // Whether to automatically remove the notification when an action has been invoked
-	Urgency  byte
+	Urgency  Urgency
 }
 
 type Notification struct {
@@ -62,8 +64,8 @@ func convertRawHints(h map[string]dbus.Variant) NotificationHints {
 			}
 		case "urgency":
 			urgency, ok := value.Value().(byte)
-			if ok && UrgencyLow <= urgency && urgency <= UrgencyCritical {
-				hints.Urgency = urgency
+			if ok && UrgencyLow <= Urgency(urgency) && Urgency(urgency) <= UrgencyCritical {
+				hints.Urgency = Urgency(urgency)
 			}
 		}
 	}

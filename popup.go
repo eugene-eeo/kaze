@@ -6,20 +6,13 @@ import "github.com/BurntSushi/xgbutil/xwindow"
 import "github.com/BurntSushi/xgbutil/ewmh"
 import "github.com/BurntSushi/xgbutil/mousebind"
 
-// TODO: use config file for these
-const notificationWidth = 300
-const fontSize = 14
-const padding = 10
-const monitorWidth = 1920
-const monitorHeight = 1080
-
 var (
 	fontBold    = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf")
 	fontRegular = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf")
 )
-var fg = xgraphics.BGRA{B: 0xff, G: 0xff, R: 0xff, A: 0xff}
-var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
-var bgUrgent = xgraphics.BGRA{B: 0x00, G: 0x11, R: 0x66, A: 0xff}
+
+//var bg = xgraphics.BGRA{B: 0x55, G: 0x55, R: 0x00, A: 0xff}
+//var bgUrgent = xgraphics.BGRA{B: 0x00, G: 0x11, R: 0x66, A: 0xff}
 
 type TextLine struct {
 	Text   string
@@ -27,6 +20,22 @@ type TextLine struct {
 }
 
 func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgraphics.Image {
+	key := "low"
+	switch n.Hints.Urgency {
+	case UrgencyCritical:
+		key = "critical"
+	case UrgencyNormal:
+		key = "normal"
+	case UrgencyLow:
+		key = "low"
+	}
+	style := conf.Styles[key]
+	fontSize := float64(conf.Core.FontSize)
+	padding := *style.Padding
+	bgColor := style.Background.BGRA
+	fgColor := style.Foreground.BGRA
+	notificationWidth := conf.Core.Width
+
 	fontWidthOracle := func(s string) int {
 		w, _ := xgraphics.Extents(fontRegular, fontSize, s)
 		return w
@@ -51,18 +60,13 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification, body string) *xgrap
 			break
 		}
 	}
-
 	// create canvas
-	bgColor := bg
-	if n.Hints.Urgency == UrgencyCritical {
-		bgColor = bgUrgent
-	}
-	ximg := ximgWithProps(X, padding, height, notificationWidth, 2, bgColor, fg)
+	ximg := ximgWithProps(X, padding, height, notificationWidth, 2, bgColor, fgColor)
 	h := 0
 	// draw text
-	_, _, _ = ximg.Text(padding, padding, fg, fontSize, fontBold, summary)
+	_, _, _ = ximg.Text(padding, padding, fgColor, fontSize, fontBold, summary)
 	for _, line := range chunks {
-		_, _, _ = ximg.Text(padding, padding+firsth+h, fg, fontSize, fontRegular, line.Text)
+		_, _, _ = ximg.Text(padding, padding+firsth+h, fgColor, fontSize, fontRegular, line.Text)
 		h += line.Height
 	}
 	return ximg
