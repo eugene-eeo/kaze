@@ -2,7 +2,7 @@
 context_menu = ["slouch", "pipe"]
 link_opener  = ["pdetach", "xdg-open"]
 maxage       = "10m"
-maxpopupage  = "5s"
+maxpopupage  = "6s"
 
 [bindings]
 mouse_filter     = "1"
@@ -11,9 +11,13 @@ kbd_close_latest = "Mod1-Shift-Space"
 kbd_show_all     = "Mod1-Space"
 
 [style]
+#font_bold    = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf"
+#font_regular = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+font_bold    = "/usr/share/fonts/truetype/iosevka/iosevka-bold.ttf"
+font_regular = "/usr/share/fonts/truetype/iosevka/iosevka-medium.ttf"
 width        = 300
 x_offset     = 1590
-y_offset     = 20
+y_offset     = 25
 font_size    = 15
 border_width = 2
 border_color = "#FFFFFF"

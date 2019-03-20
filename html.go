@@ -47,8 +47,6 @@ func TextInfoFromString(s string) (string, []Hyperlink) {
 					links = append(links, Hyperlink{label, href})
 					return
 				}
-			case "b":
-			case "i":
 			case "img":
 				return
 			}

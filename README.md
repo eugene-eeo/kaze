@@ -14,7 +14,8 @@ Then you hit a keybinding to view/close notifications.
  - [x] support actions
  - [x] support hyperlinks
  - [x] render notifications properly
- - [ ] config file
+ - [ ] support push-based client to get no. of unread notifications
+ - [x] config file
  - [ ] _maybe:_
    - [ ] sound support
    - [ ] icon support

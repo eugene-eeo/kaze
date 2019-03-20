@@ -5,11 +5,6 @@ import "github.com/BurntSushi/xgbutil/xgraphics"
 import "github.com/BurntSushi/xgbutil/xwindow"
 import "github.com/BurntSushi/xgbutil/ewmh"
 
-var (
-	fontBold    = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf")
-	fontRegular = mustReadFont("/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf")
-)
-
 type TextLine struct {
 	Text   string
 	Height int
@@ -30,15 +25,7 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
 	padding := conf.Style.Padding
 	notificationWidth := conf.Style.Width
 
-	fontWidthOracle := func(s string) int {
-		w, _ := xgraphics.Extents(fontRegular, fontSize, s)
-		return w
-	}
-
-	summary := maxWidth(n.AppName+": "+n.Summary, notificationWidth, func(s string) int {
-		w, _ := xgraphics.Extents(fontBold, fontSize, s)
-		return w
-	})
+	summary := maxWidth(n.AppName+": "+n.Summary, notificationWidth, fontBold, fontSize)
 	_, firsth := xgraphics.Extents(fontBold, fontSize, summary)
 
 	chunks := []TextLine{}
@@ -46,7 +33,7 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
 	body := n.Body.Text
 
 	for {
-		text := maxWidth(body, notificationWidth, fontWidthOracle)
+		text := maxWidth(body, notificationWidth, fontRegular, fontSize)
 		_, h := xgraphics.Extents(fontRegular, fontSize, text)
 		chunks = append(chunks, TextLine{text, h})
 		height += h
