@@ -240,7 +240,6 @@ func (e *EventHandler) Loop() {
 				}
 				if target != 0 {
 					e.deleteNotification(target, uid, 2)
-					e.display.Draw()
 				}
 			case ActionCloseOne:
 				if t := e.timers[a.Target]; t != nil {

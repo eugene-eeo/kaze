@@ -12,9 +12,9 @@ kbd_show_all     = "Mod1-Space"
 
 [style]
 width        = 300
-x_offset     = 1588
+x_offset     = 1590
 y_offset     = 20
-font_size    = 14
+font_size    = 15
 border_width = 2
 border_color = "#FFFFFF"
 padding      = 10

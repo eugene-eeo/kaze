@@ -41,13 +41,18 @@ func (p *PopupDisplay) Draw() {
 	sort.Slice(ids, func(i, j int) bool {
 		a := p.active[ids[i]]
 		b := p.active[ids[j]]
+		return a.order > b.order
+	})
+	sort.SliceStable(ids, func(i, j int) bool {
+		a := p.active[ids[i]]
+		b := p.active[ids[j]]
 		return a.notification.Hints.Urgency > b.notification.Hints.Urgency || a.order > b.order
 	})
 	height := conf.Style.YOffset
 	for _, id := range ids {
 		popup := p.active[id]
 		popup.Move(conf.Style.XOffset, height)
-		height += popup.Height() - 2
+		height += popup.Height() - conf.Style.BorderWidth
 	}
 }
 
