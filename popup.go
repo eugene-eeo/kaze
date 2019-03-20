@@ -16,21 +16,19 @@ type TextLine struct {
 }
 
 func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
-	key := "low"
+	bg := conf.Style.NormalBg.BGRA
 	switch n.Hints.Urgency {
 	case UrgencyCritical:
-		key = "critical"
+		bg = conf.Style.CriticalBg.BGRA
 	case UrgencyNormal:
-		key = "normal"
+		bg = conf.Style.NormalBg.BGRA
 	case UrgencyLow:
-		key = "low"
+		bg = conf.Style.LowBg.BGRA
 	}
-	style := conf.Styles[key]
-	fontSize := float64(conf.Core.FontSize)
-	padding := *style.Padding
-	bgColor := style.Background.BGRA
-	fgColor := style.Foreground.BGRA
-	notificationWidth := conf.Core.Width
+	fg := conf.Style.Fg.BGRA
+	fontSize := float64(conf.Style.FontSize)
+	padding := conf.Style.Padding
+	notificationWidth := conf.Style.Width
 
 	fontWidthOracle := func(s string) int {
 		w, _ := xgraphics.Extents(fontRegular, fontSize, s)
@@ -58,12 +56,15 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
 		}
 	}
 	// create canvas
-	ximg := ximgWithProps(X, padding, height, notificationWidth, 2, bgColor, fgColor)
+	ximg := ximgWithProps(X, padding,
+		height, notificationWidth,
+		conf.Style.BorderWidth, bg,
+		conf.Style.BorderColor.BGRA)
 	h := 0
 	// draw text
-	_, _, _ = ximg.Text(padding, padding, fgColor, fontSize, fontBold, summary)
+	_, _, _ = ximg.Text(padding, padding, fg, fontSize, fontBold, summary)
 	for _, line := range chunks {
-		_, _, _ = ximg.Text(padding, padding+firsth+h, fgColor, fontSize, fontRegular, line.Text)
+		_, _, _ = ximg.Text(padding, padding+firsth+h, fg, fontSize, fontRegular, line.Text)
 		h += line.Height
 	}
 	return ximg

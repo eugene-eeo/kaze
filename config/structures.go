@@ -10,9 +10,9 @@ var colorRegexp = regexp.MustCompile("^#[a-fA-F0-9]{6}$")
 var colorMatchError = errors.New("cannot match color string")
 
 type Config struct {
-	Core     coreConfig              `toml:"core"`
-	Styles   map[string]*styleConfig `toml:"style"`
-	Bindings bindingsConfig          `toml:"bindings"`
+	Core     coreConfig     `toml:"core"`
+	Style    styleConfig    `toml:"style"`
+	Bindings bindingsConfig `toml:"bindings"`
 }
 
 type coreConfig struct {
@@ -20,18 +20,20 @@ type coreConfig struct {
 	LinkOpenProgram    []string `toml:"link_opener"`
 	MaxAge             duration `toml:"maxage"`
 	MaxPopupAge        duration `toml:"maxpopupage"`
-	XOffset            int      `toml:"x_offset"`
-	YOffset            int      `toml:"y_offset"`
-	Width              int      `toml:"width"`
-	FontSize           int      `toml:"font_size"`
 }
 
 type styleConfig struct {
-	BorderWidth *int   `toml:"border_width"`
-	BorderColor *color `toml:"border_color"`
-	Padding     *int   `toml:"padding"`
-	Foreground  *color `toml:"fg"`
-	Background  *color `toml:"bg"`
+	XOffset     int   `toml:"x_offset"`
+	YOffset     int   `toml:"y_offset"`
+	Width       int   `toml:"width"`
+	FontSize    int   `toml:"font_size"`
+	BorderWidth int   `toml:"border_width"`
+	BorderColor color `toml:"border_color"`
+	Padding     int   `toml:"padding"`
+	Fg          color `toml:"fg"`
+	CriticalBg  color `toml:"critical_bg"`
+	NormalBg    color `toml:"normal_bg"`
+	LowBg       color `toml:"low_bg"`
 }
 
 type bindingsConfig struct {

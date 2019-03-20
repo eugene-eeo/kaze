@@ -116,8 +116,8 @@ func NewEventHandler(conn *dbus.Conn) *EventHandler {
 		ev.actionChan <- Action{Type: ActionCloseLatest}
 	})
 
-	showAll.Connect(X, X.RootWin(), "Mod1-Space", true)
-	closeLatest.Connect(X, X.RootWin(), "Mod1-Shift-Space", true)
+	showAll.Connect(X, X.RootWin(), conf.Bindings.ShowAll, true)
+	closeLatest.Connect(X, X.RootWin(), conf.Bindings.CloseLatest, true)
 
 	go xevent.Main(X)
 	go ev.Loop()

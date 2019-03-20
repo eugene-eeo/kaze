@@ -13,8 +13,8 @@ type PopupDisplay struct {
 func bindMouseCallbacks(X *xgbutil.XUtil, popup *Popup, ctxMenuFunc func(*Notification), closeFunc func(*Notification)) {
 	cmenu := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) { go ctxMenuFunc(popup.notification) })
 	close := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) { go closeFunc(popup.notification) })
-	cmenu.Connect(X, popup.window.Id, "1", false, true)
-	close.Connect(X, popup.window.Id, "3", false, true)
+	cmenu.Connect(X, popup.window.Id, conf.Bindings.Filter, false, true)
+	close.Connect(X, popup.window.Id, conf.Bindings.CloseOne, false, true)
 }
 
 func (p *PopupDisplay) Show(old uint, uid uint, n *Notification, ctxMenuFunc func(*Notification), closeFunc func(*Notification)) {
@@ -43,10 +43,10 @@ func (p *PopupDisplay) Draw() {
 		b := p.active[ids[j]]
 		return a.notification.Hints.Urgency > b.notification.Hints.Urgency || a.order > b.order
 	})
-	height := conf.Core.YOffset
+	height := conf.Style.YOffset
 	for _, id := range ids {
 		popup := p.active[id]
-		popup.Move(conf.Core.XOffset, height)
+		popup.Move(conf.Style.XOffset, height)
 		height += popup.Height() - 2
 	}
 }

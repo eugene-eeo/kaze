@@ -1,27 +1,24 @@
 [core]
 context_menu = ["slouch", "pipe"]
 link_opener  = ["pdetach", "xdg-open"]
-maxage = "10s"
-maxpopupage = "5s"
-width = 300
-x_offset = 1588
-y_offset = 20
-font_size = 14
+maxage       = "10m"
+maxpopupage  = "5s"
 
 [bindings]
-mouse_filter = "1"
-mouse_close_one = "3"
-kbd_close_latest = "Mod3-Space"
-kbd_show_all = "Mod3-Shift-Space"
+mouse_filter     = "1"
+mouse_close_one  = "3"
+kbd_close_latest = "Mod1-Shift-Space"
+kbd_show_all     = "Mod1-Space"
 
 [style]
-
-    [style.base]
-    border_width = 1
-    border_color = "#FFFFFF"
-    padding = 10
-    fg = "#FFFFFF"
-    bg = "#005555"
-
-    [style.critical]
-    bg = "#661100"
+width        = 300
+x_offset     = 1588
+y_offset     = 20
+font_size    = 14
+border_width = 2
+border_color = "#FFFFFF"
+padding      = 10
+fg           = "#FFFFFF"
+critical_bg  = "#661100"
+normal_bg    = "#00665C"
+low_bg       = "#333333"

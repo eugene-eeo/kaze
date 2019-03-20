@@ -30,14 +30,17 @@ func execMixedSelector(actions []NotificationAction, links []Hyperlink, actionsC
 		chunks[i] = "link\t" + link.Text + "\t" + link.Href
 		i++
 	}
-	choice := execUserSelector([]string{"slouch", "pipe"}, chunks)
+	choice := execUserSelector(conf.Core.ContextMenuProgram, chunks)
 	selection := strings.SplitN(choice, "\t", 3)
 	if len(selection) == 3 {
 		switch selection[0] {
 		case "action":
 			actionsCallback(selection[1])
 		case "link":
-			exec.Command("xdg-open", selection[2]).Run()
+			args := []string{}
+			args = append(args, conf.Core.LinkOpenProgram...)
+			args = append(args, selection[2])
+			exec.Command(args[0], args[1:]...).Run()
 		}
 	}
 }
