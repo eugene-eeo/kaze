@@ -7,7 +7,13 @@ type pairHeap []*UidPair
 func (h pairHeap) Len() int      { return len(h) }
 func (h pairHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 func (h pairHeap) Less(i, j int) bool {
-	return h[i].Notification.Hints.Urgency < h[j].Notification.Hints.Urgency || h[i].Uid < h[j].Uid
+	ua := h[i].Notification.Hints.Urgency
+	ub := h[j].Notification.Hints.Urgency
+	if ua == ub {
+		return h[i].Uid < h[j].Uid
+	} else {
+		return ua < ub
+	}
 }
 
 func (h *pairHeap) Push(x interface{}) {
