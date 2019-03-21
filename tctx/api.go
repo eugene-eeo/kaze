@@ -7,7 +7,7 @@ var ctx *tctx
 func init() {
 	ctx = &tctx{
 		id:       0,
-		timer:    nil,
+		timer:    time.NewTimer(0),
 		reqs:     &pairHeap{},
 		doneChan: make(chan uint),
 		idChan:   make(chan uint),
