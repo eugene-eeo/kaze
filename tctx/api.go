@@ -17,9 +17,6 @@ func init() {
 }
 
 func Request(d time.Duration) uint {
-	if d < 0 {
-		return 0
-	}
 	return ctx.GetUid(d)
 }
 

@@ -18,24 +18,28 @@ type tctx struct {
 }
 
 func (tc *tctx) GetUid(d time.Duration) uint {
+	// Sentinel value for timers that never fire
+	if d < 0 {
+		return 0
+	}
 	tc.reqChan <- d
 	return <-tc.idChan
 }
 
 func (tc *tctx) handleRequest(d time.Duration) {
-	now := time.Now()
 	tc.id++
 	if tc.id == 0 {
 		tc.id++
 	}
-	heap.Push(tc.reqs, pair{tc.id, now.Add(d)})
 	if tc.timer != nil {
 		if !tc.timer.Stop() {
 			<-tc.timer.C
 		}
 	}
-	tc.timer = time.NewTimer(0)
+	now := time.Now()
+	heap.Push(tc.reqs, pair{tc.id, now.Add(d)})
 	tc.idChan <- tc.id
+	tc.handleTimeout(now)
 }
 
 func (tc *tctx) handleTimeout(t time.Time) {
