@@ -41,12 +41,12 @@ func (p *PopupDisplay) Draw() {
 	sort.Slice(ids, func(i, j int) bool {
 		a := p.active[ids[i]]
 		b := p.active[ids[j]]
-		return a.order > b.order
-	})
-	sort.SliceStable(ids, func(i, j int) bool {
-		a := p.active[ids[i]]
-		b := p.active[ids[j]]
-		return a.notification.Hints.Urgency > b.notification.Hints.Urgency || a.order > b.order
+		ua := a.notification.Hints.Urgency
+		ub := b.notification.Hints.Urgency
+		if ua == ub {
+			return a.order > b.order
+		}
+		return ua > ub
 	})
 	height := conf.Style.YOffset
 	for _, id := range ids {

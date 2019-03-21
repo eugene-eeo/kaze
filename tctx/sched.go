@@ -27,19 +27,19 @@ func (tc *tctx) GetUid(d time.Duration) uint {
 }
 
 func (tc *tctx) handleRequest(d time.Duration) {
+	now := time.Now()
 	tc.id++
 	if tc.id == 0 {
 		tc.id++
 	}
+	heap.Push(tc.reqs, pair{tc.id, now.Add(d)})
 	if tc.timer != nil {
 		if !tc.timer.Stop() {
 			<-tc.timer.C
 		}
 	}
-	now := time.Now()
-	heap.Push(tc.reqs, pair{tc.id, now.Add(d)})
+	tc.timer = time.NewTimer(0)
 	tc.idChan <- tc.id
-	tc.handleTimeout(now)
 }
 
 func (tc *tctx) handleTimeout(t time.Time) {
