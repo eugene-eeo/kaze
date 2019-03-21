@@ -1,7 +1,5 @@
 <p align="center"><img src="_img/kaze.png" width="200px"/></p>
 
-# kaze - 風
-
 Tiny and lightweight notification daemon for Linux.
 Implements the [freedesktop notification spec](https://developer.gnome.org/notification-spec/).
 Massive WIP.
@@ -10,7 +8,7 @@ Massive WIP.
 
 <img src="_img/scrot.png"/>
 
-## roadmap
+## todo
 
  - [x] draw notification in X window
  - [x] close popups automatically
@@ -21,6 +19,7 @@ Massive WIP.
  - [ ] support push-based client to get no. of unread notifications
  - [ ] support non-ascii (probably need to move to freetype rasterizer?)
  - [x] config file
+ - [ ] refactor codebase
  - [ ] _maybe:_
    - [ ] sound support
    - [ ] icon support
