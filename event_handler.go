@@ -8,31 +8,20 @@ import "github.com/BurntSushi/xgbutil/mousebind"
 import "github.com/BurntSushi/xgbutil/keybind"
 import "github.com/eugene-eeo/kaze/tctx"
 
-type ExpiryType int
 type ActionType int
 type Reason uint32
 
 const (
 	ActionShowAll = ActionType(iota)
 	ActionCloseOne
-	ActionCloseLatest
+	ActionCloseTop
 	ActionContextMenu
-
-	ExpiryTimeout = ExpiryType(iota)
-	ExpiryAction
-	ExpiryPopup
 
 	ReasonExpired = Reason(1 + iota)
 	ReasonUserDismissed
 	ReasonCloseNotification
 	ReasonUndefined
 )
-
-type Expiry struct {
-	Type   ExpiryType
-	Id     uint32
-	Target uint
-}
 
 type Action struct {
 	Type   ActionType
@@ -42,6 +31,9 @@ type Action struct {
 type UidPair struct {
 	Uid          uint
 	Notification *Notification
+	ExpiryReq    uint
+	PopupAgeReq  uint
+	ActionReq    uint
 }
 
 type EventHandler struct {
@@ -50,7 +42,6 @@ type EventHandler struct {
 	closeChan        chan uint32 // Used for HandleClose
 	actionChan       chan Action
 	notificationChan chan *Notification
-	expiries         map[uint]Expiry
 	pairs            *CappedPairs
 	display          *PopupDisplay
 	// Passed to display
@@ -72,7 +63,6 @@ func NewEventHandler(conn *dbus.Conn) *EventHandler {
 		closeChan:        make(chan uint32),
 		actionChan:       make(chan Action),
 		notificationChan: make(chan *Notification),
-		expiries:         map[uint]Expiry{},
 		pairs:            NewCappedPairs(conf.Core.Max),
 		display:          &PopupDisplay{X, map[uint]*Popup{}},
 		contextMenuFunc:  func(n *Notification) { ev.actionChan <- Action{Type: ActionContextMenu, Target: n.Id} },
@@ -82,12 +72,12 @@ func NewEventHandler(conn *dbus.Conn) *EventHandler {
 	showAll := keybind.KeyPressFun(func(x *xgbutil.XUtil, _ xevent.KeyPressEvent) {
 		ev.actionChan <- Action{Type: ActionShowAll}
 	})
-	closeLatest := keybind.KeyPressFun(func(x *xgbutil.XUtil, _ xevent.KeyPressEvent) {
-		ev.actionChan <- Action{Type: ActionCloseLatest}
+	closeTop := keybind.KeyPressFun(func(x *xgbutil.XUtil, _ xevent.KeyPressEvent) {
+		ev.actionChan <- Action{Type: ActionCloseTop}
 	})
 
 	showAll.Connect(X, X.RootWin(), conf.Bindings.ShowAll, true)
-	closeLatest.Connect(X, X.RootWin(), conf.Bindings.CloseLatest, true)
+	closeTop.Connect(X, X.RootWin(), conf.Bindings.CloseTop, true)
 
 	go xevent.Main(X)
 	go ev.Loop()
@@ -122,17 +112,26 @@ func (e *EventHandler) deleteNotification(id uint32, uid uint, reason Reason) {
 	}
 }
 
-func (e *EventHandler) handleExpiry(exp Expiry) {
-	t := e.pairs.Get(exp.Id)
-	if t != nil && t.Uid == exp.Target {
-		switch exp.Type {
-		case ExpiryAction:
-			e.deleteNotification(exp.Id, exp.Target, ReasonUndefined)
-		case ExpiryTimeout:
-			e.deleteNotification(exp.Id, exp.Target, ReasonExpired)
-		case ExpiryPopup:
-			e.display.Close(exp.Target)
+func (e *EventHandler) handleExpiry(id uint) {
+	found := false
+	for _, p := range *e.pairs.lru {
+		if p.ActionReq == id {
+			e.deleteNotification(p.Notification.Id, p.Uid, ReasonUndefined)
+			found = true
+			break
 		}
+		if p.ExpiryReq == id {
+			e.deleteNotification(p.Notification.Id, p.Uid, ReasonExpired)
+			found = true
+			break
+		}
+		if p.PopupAgeReq == id {
+			e.display.Close(p.Uid)
+			found = true
+			break
+		}
+	}
+	if found {
 		e.draw()
 	}
 }
@@ -163,51 +162,42 @@ func (e *EventHandler) Loop() {
 			uid := e.nextUid
 			if u := e.pairs.Get(n.Id); u != nil {
 				// We have seen this before
+				e.pairs.Delete(n.Id)
 				old = u.Uid
 			}
 			// add expiries
-			e.expiries[tctx.Request(maxAge)] = Expiry{ExpiryPopup, n.Id, uid}
-			e.expiries[tctx.Request(maxTimeout)] = Expiry{ExpiryTimeout, n.Id, uid}
+			u := &UidPair{
+				Uid:          uid,
+				Notification: n,
+				ExpiryReq:    tctx.Request(maxTimeout),
+				PopupAgeReq:  tctx.Request(maxAge),
+			}
 			// show
 			e.display.Show(old, uid, n, e.contextMenuFunc, e.closeOneFunc)
 			// remove excess
-			excess := e.pairs.Insert(n.Id, &UidPair{uid, n})
+			excess := e.pairs.Insert(n.Id, u)
 			if excess != nil {
 				e.deleteNotification(excess.Notification.Id, excess.Uid, ReasonUndefined)
 			}
 			e.draw()
 
 		case id := <-tctx.Listen():
-			if _, ok := e.expiries[id]; ok {
-				e.handleExpiry(e.expiries[id])
-				delete(e.expiries, id)
-			}
+			e.handleExpiry(id)
 
 		case a := <-e.actionChan:
 			switch a.Type {
 			case ActionShowAll:
-				for _, u := range e.pairs.pairs {
+				for _, u := range *e.pairs.lru {
 					e.display.Show(u.Uid, u.Uid, u.Notification, e.contextMenuFunc, e.closeOneFunc)
 					if u.Notification.Hints.Urgency != UrgencyCritical {
-						e.expiries[tctx.Request(conf.Core.MaxPopupAge.Duration)] = Expiry{
-							Type:   ExpiryPopup,
-							Id:     u.Notification.Id,
-							Target: u.Uid,
-						}
+						u.PopupAgeReq = tctx.Request(conf.Core.MaxPopupAge.Duration)
 					}
 				}
 				e.draw()
-			case ActionCloseLatest:
-				target := uint32(0)
-				uid := uint(0)
-				for id, u := range e.pairs.pairs {
-					if u.Uid > uid {
-						uid = u.Uid
-						target = id
-					}
-				}
-				if target != 0 {
-					e.deleteNotification(target, uid, ReasonUserDismissed)
+			case ActionCloseTop:
+				if e.pairs.lru.Len() > 0 {
+					pair := (*e.pairs.lru)[0]
+					e.deleteNotification(pair.Notification.Id, pair.Uid, ReasonUserDismissed)
 				}
 			case ActionCloseOne:
 				if u := e.pairs.Get(a.Target); u != nil {
@@ -222,7 +212,7 @@ func (e *EventHandler) Loop() {
 						}
 						// Otherwise we have no events!
 						if !u.Notification.Hints.Resident {
-							e.expiries[tctx.Request(0)] = Expiry{ExpiryAction, a.Target, u.Uid}
+							u.ActionReq = tctx.Request(0)
 						}
 					})
 				}

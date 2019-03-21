@@ -40,10 +40,10 @@ type styleConfig struct {
 }
 
 type bindingsConfig struct {
-	Filter      string `toml:"mouse_filter"`
-	CloseOne    string `toml:"mouse_close_one"`
-	CloseLatest string `toml:"kbd_close_latest"`
-	ShowAll     string `toml:"kbd_show_all"`
+	Filter   string `toml:"mse_filter"`
+	CloseOne string `toml:"mse_close_one"`
+	CloseTop string `toml:"kbd_close_top"`
+	ShowAll  string `toml:"kbd_show_all"`
 }
 
 type color struct {

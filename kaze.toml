@@ -6,10 +6,10 @@ maxpopupage  = "5s"
 max          = 5
 
 [bindings]
-mouse_filter     = "1"
-mouse_close_one  = "3"
-kbd_close_latest = "Mod1-Shift-Space"
-kbd_show_all     = "Mod1-Space"
+mse_filter    = "1"
+mse_close_one = "3"
+kbd_close_top = "Mod1-Shift-Space"
+kbd_show_all  = "Mod1-Space"
 
 [style]
 font_bold    = "/usr/share/fonts/truetype/iosevka/iosevka-bold.ttf"
