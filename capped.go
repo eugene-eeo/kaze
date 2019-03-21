@@ -1,51 +1,78 @@
 package main
 
-import "container/heap"
+import "sort"
 
-type pairHeap []*UidPair
-
-func (h pairHeap) Len() int      { return len(h) }
-func (h pairHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
-func (h pairHeap) Less(i, j int) bool {
-	ua := h[i].Notification.Hints.Urgency
-	ub := h[j].Notification.Hints.Urgency
+func lessNotifications(a *Notification, b *Notification) bool {
+	ua := a.Hints.Urgency
+	ub := a.Hints.Urgency
 	if ua == ub {
-		return h[i].Uid < h[j].Uid
+		return a.Id <= b.Id
 	}
-	return ua < ub
+	return ua <= ub
 }
 
-func (h *pairHeap) Push(x interface{}) {
-	*h = append(*h, x.(*UidPair))
+type pairArray []*UidPair
+
+func (h pairArray) Len() int {
+	return len(h)
 }
 
-func (h *pairHeap) Pop() interface{} {
-	old := *h
-	n := len(old)
-	x := old[n-1]
-	*h = old[0 : n-1]
-	return x
+func (h *pairArray) Find(p *UidPair) int {
+	hh := *h
+	n := p.Notification
+	return sort.Search(h.Len(), func(i int) bool {
+		if hh[i] == p {
+			return true
+		}
+		a := hh[i].Notification
+		ua := a.Hints.Urgency
+		ub := n.Hints.Urgency
+		if ua == ub {
+			return a.Id <= n.Id
+		}
+		return ua <= ub
+	})
+}
+
+func (h *pairArray) Delete(p *UidPair) {
+	hh := *h
+	i := h.Find(p)
+	n := len(hh)
+	copy(hh[i:], hh[i+1:])
+	hh[n-1] = nil // or the zero value of T
+	hh = hh[:n-1]
+	*h = hh
+}
+
+func (h *pairArray) Insert(p *UidPair) {
+	hh := *h
+	i := h.Find(p)
+	hh = append(hh, nil)
+	copy(hh[i+1:], hh[i:])
+	hh[i] = p
+	*h = hh
 }
 
 type CappedPairs struct {
 	max   int
-	lru   *pairHeap
+	lru   *pairArray
 	pairs map[uint32]*UidPair
 }
 
 func NewCappedPairs(max int) *CappedPairs {
+	lru := make(pairArray, 0, max+1)
 	return &CappedPairs{
 		max:   max,
-		lru:   &pairHeap{},
-		pairs: map[uint32]*UidPair{},
+		lru:   &lru,
+		pairs: make(map[uint32]*UidPair, max+1),
 	}
 }
 
 func (cp *CappedPairs) Insert(x uint32, p *UidPair) (excess *UidPair) {
-	heap.Push(cp.lru, p)
 	cp.pairs[x] = p
-	if cp.max != -1 && cp.lru.Len() > cp.max {
-		excess = heap.Pop(cp.lru).(*UidPair)
+	cp.lru.Insert(p)
+	if cp.max > 0 && cp.lru.Len() > cp.max {
+		excess = (*cp.lru)[cp.lru.Len()-1]
 	}
 	return
 }
@@ -55,18 +82,8 @@ func (cp *CappedPairs) Get(x uint32) *UidPair {
 }
 
 func (cp *CappedPairs) Delete(x uint32) {
-	pair := cp.pairs[x]
-	last := cp.lru.Len() - 1
-	for i := last; i >= 0; i-- {
-		if (*cp.lru)[i] == pair {
-			// swap last and this
-			cp.lru.Swap(i, last)
-			cp.lru.Pop()
-			if i != last {
-				heap.Fix(cp.lru, i)
-			}
-			break
-		}
+	if p, ok := cp.pairs[x]; ok {
+		delete(cp.pairs, x)
+		cp.lru.Delete(p)
 	}
-	delete(cp.pairs, x)
 }

@@ -133,8 +133,12 @@ func (e *EventHandler) handleExpiry(exp Expiry) {
 		case ExpiryPopup:
 			e.display.Close(exp.Target)
 		}
-		e.display.Draw()
+		e.draw()
 	}
+}
+
+func (e *EventHandler) draw() {
+	e.display.Draw(*e.pairs.lru)
 }
 
 func (e *EventHandler) Loop() {
@@ -171,7 +175,7 @@ func (e *EventHandler) Loop() {
 			if excess != nil {
 				e.deleteNotification(excess.Notification.Id, excess.Uid, ReasonUndefined)
 			}
-			e.display.Draw()
+			e.draw()
 
 		case id := <-tctx.Listen():
 			if _, ok := e.expiries[id]; ok {
@@ -192,7 +196,7 @@ func (e *EventHandler) Loop() {
 						}
 					}
 				}
-				e.display.Draw()
+				e.draw()
 			case ActionCloseLatest:
 				target := uint32(0)
 				uid := uint(0)

@@ -1,6 +1,5 @@
 package main
 
-import "sort"
 import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xevent"
 import "github.com/BurntSushi/xgbutil/mousebind"
@@ -20,7 +19,7 @@ func bindMouseCallbacks(X *xgbutil.XUtil, popup *Popup, ctxMenuFunc func(*Notifi
 func (p *PopupDisplay) Show(old uint, uid uint, n *Notification, ctxMenuFunc func(*Notification), closeFunc func(*Notification)) {
 	popup := p.active[old]
 	if popup == nil {
-		// not seen before
+		// not seen before or currently invisible
 		popup = NewPopup(p.x, uid, n)
 		bindMouseCallbacks(p.x, popup, ctxMenuFunc, closeFunc)
 	} else {
@@ -31,28 +30,13 @@ func (p *PopupDisplay) Show(old uint, uid uint, n *Notification, ctxMenuFunc fun
 	p.active[uid] = popup
 }
 
-func (p *PopupDisplay) Draw() {
-	ids := make([]uint, 0, len(p.active))
-	for id, popup := range p.active {
-		if popup != nil {
-			ids = append(ids, id)
-		}
-	}
-	sort.Slice(ids, func(i, j int) bool {
-		a := p.active[ids[i]]
-		b := p.active[ids[j]]
-		ua := a.notification.Hints.Urgency
-		ub := b.notification.Hints.Urgency
-		if ua == ub {
-			return a.order > b.order
-		}
-		return ua > ub
-	})
+func (p *PopupDisplay) Draw(order []*UidPair) {
 	height := conf.Style.YOffset
-	for _, id := range ids {
-		popup := p.active[id]
-		popup.Move(conf.Style.XOffset, height)
-		height += popup.Height() - conf.Style.BorderWidth
+	for _, pair := range order {
+		if popup := p.active[pair.Uid]; popup != nil {
+			popup.Move(conf.Style.XOffset, height)
+			height += popup.Height() - conf.Style.BorderWidth
+		}
 	}
 }
 
