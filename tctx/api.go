@@ -8,7 +8,7 @@ func init() {
 	ctx = &tctx{
 		id:       0,
 		timer:    nil,
-		reqs:     &pairHeap{[]pair{}},
+		reqs:     &pairHeap{},
 		doneChan: make(chan uint),
 		idChan:   make(chan uint),
 		reqChan:  make(chan time.Duration),

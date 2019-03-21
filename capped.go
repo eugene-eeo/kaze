@@ -11,9 +11,8 @@ func (h pairHeap) Less(i, j int) bool {
 	ub := h[j].Notification.Hints.Urgency
 	if ua == ub {
 		return h[i].Uid < h[j].Uid
-	} else {
-		return ua < ub
 	}
+	return ua < ub
 }
 
 func (h *pairHeap) Push(x interface{}) {

@@ -40,8 +40,8 @@ func (tc *tctx) handleRequest(d time.Duration) {
 
 func (tc *tctx) handleTimeout(t time.Time) {
 	tc.timer = nil
-	for len(tc.reqs.s) > 0 {
-		p := tc.reqs.s[0]
+	for tc.reqs.Len() > 0 {
+		p := (*tc.reqs)[0]
 		if p.te.Before(t) || p.te.Equal(t) {
 			tc.doneChan <- p.id
 			heap.Pop(tc.reqs)
