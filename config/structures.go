@@ -20,6 +20,7 @@ type coreConfig struct {
 	LinkOpenProgram    []string `toml:"link_opener"`
 	MaxAge             duration `toml:"maxage"`
 	MaxPopupAge        duration `toml:"maxpopupage"`
+	Max                int      `toml:"max"`
 }
 
 type styleConfig struct {

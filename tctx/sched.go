@@ -23,18 +23,23 @@ func (tc *tctx) GetUid(d time.Duration) uint {
 }
 
 func (tc *tctx) handleRequest(d time.Duration) {
+	now := time.Now()
 	tc.id++
 	if tc.id == 0 {
 		tc.id++
 	}
-	heap.Push(tc.reqs, pair{tc.id, time.Now().Add(d)})
-	if tc.timer == nil {
-		tc.timer = time.NewTimer(d)
+	heap.Push(tc.reqs, pair{tc.id, now.Add(d)})
+	if tc.timer != nil {
+		if !tc.timer.Stop() {
+			<-tc.timer.C
+		}
 	}
+	tc.timer = time.NewTimer(0)
 	tc.idChan <- tc.id
 }
 
 func (tc *tctx) handleTimeout(t time.Time) {
+	tc.timer = nil
 	for len(tc.reqs.s) > 0 {
 		p := tc.reqs.s[0]
 		if p.te.Before(t) || p.te.Equal(t) {
@@ -46,8 +51,6 @@ func (tc *tctx) handleTimeout(t time.Time) {
 			return
 		}
 	}
-	tc.timer.Stop()
-	tc.timer = nil
 }
 
 func (tc *tctx) Loop() {
