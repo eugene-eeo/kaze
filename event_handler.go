@@ -31,9 +31,9 @@ type Action struct {
 type UidPair struct {
 	Uid          uint
 	Notification *Notification
-	ExpiryReq    uint
-	PopupAgeReq  uint
-	ActionReq    uint
+	ExpiryReq    tctx.TimerId
+	PopupAgeReq  tctx.TimerId
+	ActionReq    tctx.TimerId
 }
 
 type EventHandler struct {
@@ -42,6 +42,7 @@ type EventHandler struct {
 	closeChan        chan uint32 // Used for HandleClose
 	actionChan       chan Action
 	notificationChan chan *Notification
+	expiries         map[tctx.TimerId]*UidPair
 	pairs            *CappedPairs
 	display          *PopupDisplay
 	// Passed to display
@@ -63,6 +64,7 @@ func NewEventHandler(conn *dbus.Conn) *EventHandler {
 		closeChan:        make(chan uint32),
 		actionChan:       make(chan Action),
 		notificationChan: make(chan *Notification),
+		expiries:         map[tctx.TimerId]*UidPair{},
 		pairs:            NewCappedPairs(conf.Core.Max),
 		display:          &PopupDisplay{X, map[uint]*Popup{}},
 		contextMenuFunc:  func(n *Notification) { ev.actionChan <- Action{Type: ActionContextMenu, Target: n.Id} },
@@ -112,28 +114,32 @@ func (e *EventHandler) deleteNotification(id uint32, uid uint, reason Reason) {
 	}
 }
 
-func (e *EventHandler) handleExpiry(id uint) {
-	found := false
-	for _, p := range *e.pairs.lru {
-		if p.ActionReq == id {
+func (e *EventHandler) handleExpiry(id tctx.TimerId) {
+	if p := e.expiries[id]; p != nil {
+		delete(e.expiries, id)
+		switch id {
+		case p.ActionReq:
 			e.deleteNotification(p.Notification.Id, p.Uid, ReasonUndefined)
-			found = true
-			break
-		}
-		if p.ExpiryReq == id {
+		case p.ExpiryReq:
 			e.deleteNotification(p.Notification.Id, p.Uid, ReasonExpired)
-			found = true
-			break
-		}
-		if p.PopupAgeReq == id {
+		case p.PopupAgeReq:
 			e.display.Close(p.Uid)
-			found = true
-			break
 		}
-	}
-	if found {
 		e.draw()
 	}
+}
+
+func (e *EventHandler) addExpiry(d time.Duration, u *UidPair, mode int) {
+	timerId := tctx.Request(d)
+	switch mode {
+	case 0:
+		u.PopupAgeReq = timerId
+	case 1:
+		u.ActionReq = timerId
+	case 2:
+		u.ExpiryReq = timerId
+	}
+	e.expiries[timerId] = u
 }
 
 func (e *EventHandler) draw() {
@@ -145,11 +151,11 @@ func (e *EventHandler) Loop() {
 		select {
 		case n := <-e.notificationChan:
 			// Set a max age if it's not a critical notification
-			maxAge := conf.Core.MaxPopupAge.Duration
+			maxPopupAge := conf.Core.MaxPopupAge.Duration
 			maxTimeout := conf.Core.MaxAge.Duration
 			if n.Hints.Urgency == UrgencyCritical {
 				// Critical Notifications
-				maxAge = -1
+				maxPopupAge = -1
 			} else {
 				// Non-critical
 				timeout := time.Duration(n.ExpireTimeout) * time.Millisecond
@@ -169,9 +175,9 @@ func (e *EventHandler) Loop() {
 			u := &UidPair{
 				Uid:          uid,
 				Notification: n,
-				ExpiryReq:    tctx.Request(maxTimeout),
-				PopupAgeReq:  tctx.Request(maxAge),
 			}
+			e.addExpiry(maxPopupAge, u, 0)
+			e.addExpiry(maxTimeout, u, 2)
 			// show
 			e.display.Show(old, uid, n, e.contextMenuFunc, e.closeOneFunc)
 			// remove excess
@@ -190,7 +196,7 @@ func (e *EventHandler) Loop() {
 				for _, u := range *e.pairs.lru {
 					e.display.Show(u.Uid, u.Uid, u.Notification, e.contextMenuFunc, e.closeOneFunc)
 					if u.Notification.Hints.Urgency != UrgencyCritical {
-						u.PopupAgeReq = tctx.Request(conf.Core.MaxPopupAge.Duration)
+						e.addExpiry(conf.Core.MaxPopupAge.Duration, u, 0)
 					}
 				}
 				e.draw()
@@ -212,7 +218,7 @@ func (e *EventHandler) Loop() {
 						}
 						// Otherwise we have no events!
 						if !u.Notification.Hints.Resident {
-							u.ActionReq = tctx.Request(0)
+							e.addExpiry(0, u, 1)
 						}
 					})
 				}

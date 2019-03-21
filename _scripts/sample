@@ -1,0 +1,8 @@
+#!/bin/sh
+
+notify-send 'Summary' 'Body (Low.1)' --urgency=low
+notify-send 'Summary' 'Body (Low.2)' --urgency=low
+notify-send 'Summary' 'Body (Normal.1)' --urgency=normal
+notify-send 'Summary' 'Body (Normal.2)' --urgency=normal
+notify-send 'Summary' 'Body (High.1)' --urgency=critical
+notify-send 'Summary' 'Body (High.2)' --urgency=critical

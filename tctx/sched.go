@@ -3,21 +3,23 @@ package tctx
 import "time"
 import "container/heap"
 
+type TimerId uint
+
 type pair struct {
-	id uint
+	id TimerId
 	te time.Time
 }
 
 type tctx struct {
-	id       uint
+	id       TimerId
 	timer    *time.Timer
 	reqs     *pairHeap
-	doneChan chan uint
-	idChan   chan uint
+	doneChan chan TimerId
+	idChan   chan TimerId
 	reqChan  chan time.Duration
 }
 
-func (tc *tctx) GetUid(d time.Duration) uint {
+func (tc *tctx) GetUid(d time.Duration) TimerId {
 	// Sentinel value for timers that never fire
 	if d < 0 {
 		return 0

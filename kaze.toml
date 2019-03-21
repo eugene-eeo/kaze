@@ -12,16 +12,16 @@ kbd_close_top = "Mod1-Shift-Space"
 kbd_show_all  = "Mod1-Space"
 
 [style]
-font_bold    = "/usr/share/fonts/truetype/iosevka/iosevka-bold.ttf"
-font_regular = "/usr/share/fonts/truetype/iosevka/iosevka-medium.ttf"
+font_bold    = "/usr/share/fonts/truetype/hack/Hack-Bold.ttf"
+font_regular = "/usr/share/fonts/truetype/hack/Hack-Regular.ttf"
 width        = 300
 x_offset     = 1590
 y_offset     = 25
-font_size    = 15
+font_size    = 14
 border_width = 2
 border_color = "#FFFFFF"
 padding      = 10
 fg           = "#FFFFFF"
-critical_bg  = "#661100"
-normal_bg    = "#00665C"
-low_bg       = "#333333"
+critical_bg  = "#771100"
+normal_bg    = "#00795B"
+low_bg       = "#222222"

@@ -69,6 +69,9 @@ func NewCappedPairs(max int) *CappedPairs {
 }
 
 func (cp *CappedPairs) Insert(x uint32, p *UidPair) (excess *UidPair) {
+	if prev := cp.pairs[x]; prev != nil {
+		cp.lru.Delete(prev)
+	}
 	cp.pairs[x] = p
 	cp.lru.Insert(p)
 	if cp.max > 0 && cp.lru.Len() > cp.max {

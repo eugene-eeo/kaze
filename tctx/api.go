@@ -9,17 +9,17 @@ func init() {
 		id:       0,
 		timer:    time.NewTimer(0),
 		reqs:     &pairHeap{},
-		doneChan: make(chan uint),
-		idChan:   make(chan uint),
+		doneChan: make(chan TimerId),
+		idChan:   make(chan TimerId),
 		reqChan:  make(chan time.Duration),
 	}
 	go ctx.Loop()
 }
 
-func Request(d time.Duration) uint {
+func Request(d time.Duration) TimerId {
 	return ctx.GetUid(d)
 }
 
-func Listen() <-chan uint {
+func Listen() <-chan TimerId {
 	return ctx.doneChan
 }
