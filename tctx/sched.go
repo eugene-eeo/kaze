@@ -40,11 +40,11 @@ func (tc *tctx) handleRequest(d time.Duration) {
 func (tc *tctx) handleTimeout(t time.Time) {
 	for tc.reqs.Len() > 0 {
 		p := (*tc.reqs)[0]
-		if p.te.Before(t) || p.te.Equal(t) {
+		m := p.te.Sub(t)
+		if m <= 0 {
 			tc.doneChan <- p.id
 			heap.Pop(tc.reqs)
 		} else {
-			m := p.te.Sub(t)
 			tc.timer.Reset(m)
 			return
 		}
