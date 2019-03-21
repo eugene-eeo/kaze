@@ -57,16 +57,17 @@ func (cp *CappedPairs) Get(x uint32) *UidPair {
 
 func (cp *CappedPairs) Delete(x uint32) {
 	pair := cp.pairs[x]
-	lru := *cp.lru
-	for i := len(lru) - 1; i >= 0; i-- {
-		if lru[i] == pair {
-			copy(lru[i:], lru[i+1:])
-			lru[len(lru)-1] = nil // or the zero value of T
-			lru = lru[:len(lru)-1]
+	last := cp.lru.Len() - 1
+	for i := last; i >= 0; i-- {
+		if (*cp.lru)[i] == pair {
+			// swap last and this
+			cp.lru.Swap(i, last)
+			cp.lru.Pop()
+			if i != last {
+				heap.Fix(cp.lru, i)
+			}
 			break
 		}
 	}
-	cp.lru = &lru
-	heap.Init(cp.lru)
 	delete(cp.pairs, x)
 }

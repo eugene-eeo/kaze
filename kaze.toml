@@ -3,7 +3,7 @@ context_menu = ["slouch", "pipe"]
 link_opener  = ["pdetach", "xdg-open"]
 maxage       = "10m"
 maxpopupage  = "5s"
-max          = 10
+max          = 5
 
 [bindings]
 mouse_filter     = "1"

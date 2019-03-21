@@ -121,11 +121,6 @@ func (e *EventHandler) deleteNotification(id uint32, uid uint, reason uint32) {
 		e.pairs.Delete(id)
 		e.display.Destroy(uid)
 		e.EmitClosed(id, reason)
-		for uid, exp := range e.expiries {
-			if exp.Id == id {
-				delete(e.expiries, uid)
-			}
-		}
 	}
 }
 
