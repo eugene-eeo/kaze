@@ -6,7 +6,14 @@ import "github.com/BurntSushi/xgbutil/mousebind"
 
 type PopupDisplay struct {
 	x      *xgbutil.XUtil
-	active map[uint]*Popup
+	active map[UID]*Popup
+}
+
+func NewPopupDisplay(x *xgbutil.XUtil) *PopupDisplay {
+	return &PopupDisplay{
+		x:      x,
+		active: map[UID]*Popup{},
+	}
 }
 
 func bindMouseCallbacks(X *xgbutil.XUtil, popup *Popup, ctxMenuFunc func(*Notification), closeFunc func(*Notification)) {
@@ -16,11 +23,11 @@ func bindMouseCallbacks(X *xgbutil.XUtil, popup *Popup, ctxMenuFunc func(*Notifi
 	close.Connect(X, popup.window.Id, conf.Bindings.CloseOne, false, true)
 }
 
-func (p *PopupDisplay) Show(old uint, uid uint, n *Notification, ctxMenuFunc func(*Notification), closeFunc func(*Notification)) {
+func (p *PopupDisplay) Show(old UID, uid UID, n *Notification, ctxMenuFunc func(*Notification), closeFunc func(*Notification)) {
 	popup := p.active[old]
 	if popup == nil {
 		// not seen before or currently invisible
-		popup = NewPopup(p.x, uid, n)
+		popup = NewPopup(p.x, uint(uid), n)
 		bindMouseCallbacks(p.x, popup, ctxMenuFunc, closeFunc)
 	} else {
 		// otherwise it is currently visible
@@ -40,14 +47,14 @@ func (p *PopupDisplay) Draw(order []*UidPair) {
 	}
 }
 
-func (p *PopupDisplay) Close(uid uint) {
+func (p *PopupDisplay) Close(uid UID) {
 	if popup := p.active[uid]; popup != nil {
 		popup.Close()
 		p.active[uid] = nil
 	}
 }
 
-func (p *PopupDisplay) Destroy(uid uint) {
+func (p *PopupDisplay) Destroy(uid UID) {
 	popup := p.active[uid]
 	if popup != nil {
 		popup.Close()

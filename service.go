@@ -1,7 +1,8 @@
 package main
 
-import "github.com/godbus/dbus"
+import "time"
 import "sync"
+import "github.com/godbus/dbus"
 
 type Urgency byte
 
@@ -35,7 +36,7 @@ type Notification struct {
 	Body          ParsedBody
 	Hints         NotificationHints
 	Actions       []NotificationAction
-	ExpireTimeout int32
+	ExpireTimeout time.Duration
 }
 
 func convertRawActions(actions []string) []NotificationAction {
@@ -81,10 +82,10 @@ type Service struct {
 	id      uint32
 	conn    *dbus.Conn
 	lock    sync.Mutex
-	handler *EventHandler
+	handler *Server
 }
 
-func NewService(conn *dbus.Conn, handler *EventHandler) *Service {
+func NewService(conn *dbus.Conn, handler *Server) *Service {
 	return &Service{
 		conn:    conn,
 		handler: handler,
@@ -135,7 +136,7 @@ func (s *Service) Notify(appName string, replacesId uint32, appIcon string, summ
 		Body:          ParsedBody{text, links},
 		Actions:       convertRawActions(actions),
 		Hints:         convertRawHints(hints),
-		ExpireTimeout: expireTimeout,
+		ExpireTimeout: time.Duration(expireTimeout) * time.Millisecond,
 	})
 	return id, nil
 }
