@@ -17,12 +17,10 @@ Massive WIP.
  - [x] support hyperlinks
  - [x] render notifications properly
  - [ ] support push-based client to get no. of unread notifications
- - [ ] support non-ascii (probably need to move to freetype rasterizer?)
+ - [ ] use one X window for all notifications
  - [x] config file
  - [x] refactor codebase
  - [ ] _maybe:_
    - [ ] sound support
    - [ ] icon support
-   - [ ] better font support (currently you need to pass the full path to the ttf),
-   maybe need to use fontconfig to find the correct font
    - [ ] italic / bold / underline rendering

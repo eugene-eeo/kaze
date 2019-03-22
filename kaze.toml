@@ -3,7 +3,7 @@ context_menu = ["slouch", "pipe"]
 link_opener  = ["pdetach", "xdg-open"]
 maxage       = "10m"
 maxpopupage  = "5s"
-max          = 5
+max          = 100
 
 [bindings]
 mse_filter    = "1"
@@ -12,16 +12,16 @@ kbd_close_top = "Mod1-Shift-Space"
 kbd_show_all  = "Mod1-Space"
 
 [style]
-font_bold    = "/usr/share/fonts/truetype/hack/Hack-Bold.ttf"
-font_regular = "/usr/share/fonts/truetype/hack/Hack-Regular.ttf"
+font_bold    = "_font/unifont-12.0.01.ttf"
+font_regular = "_font/unifont-12.0.01.ttf"
 width        = 300
 x_offset     = 1590
 y_offset     = 25
-font_size    = 14
+font_size    = 16
 border_width = 2
-border_color = "#FFFFFF"
+border_color = "#CCCCCC"
 padding      = 10
-fg           = "#FFFFFF"
+fg           = "#EEEEEE"
 critical_bg  = "#771100"
 normal_bg    = "#00795B"
 low_bg       = "#222222"
