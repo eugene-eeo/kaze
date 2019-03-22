@@ -111,6 +111,7 @@ func (s *Server) handleAction(a ActionRequest) {
 		nid := a.Nid
 		uid := s.notifications.UidOf(nid)
 		s.close(uid, nid, ReasonUserDismissed)
+		s.redraw()
 	case ActionCloseTop:
 		nid, uid := s.notifications.Top()
 		if nid != 0 {

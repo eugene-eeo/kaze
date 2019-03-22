@@ -19,7 +19,7 @@ Massive WIP.
  - [ ] support push-based client to get no. of unread notifications
  - [ ] support non-ascii (probably need to move to freetype rasterizer?)
  - [x] config file
- - [ ] refactor codebase
+ - [x] refactor codebase
  - [ ] _maybe:_
    - [ ] sound support
    - [ ] icon support
