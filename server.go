@@ -23,14 +23,9 @@ type Server struct {
 
 func (s *Server) calculateTimeouts(u Urgency, expireTimeout time.Duration) (expiry time.Duration, popup time.Duration) {
 	popupAge := conf.Core.MaxPopupAge.Duration
-	timeout := conf.Core.MaxAge.Duration
+	timeout := expireTimeout
 	if u == UrgencyCritical {
 		popupAge = -1
-		timeout = -1
-	} else {
-		if expireTimeout < timeout {
-			timeout = expireTimeout
-		}
 	}
 	return popupAge, timeout
 }

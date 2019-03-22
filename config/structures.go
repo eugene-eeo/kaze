@@ -18,7 +18,6 @@ type Config struct {
 type coreConfig struct {
 	ContextMenuProgram []string `toml:"context_menu"`
 	LinkOpenProgram    []string `toml:"link_opener"`
-	MaxAge             duration `toml:"maxage"`
 	MaxPopupAge        duration `toml:"maxpopupage"`
 	Max                int      `toml:"max"`
 }
