@@ -92,6 +92,7 @@ func (s *Server) handleExpiry(exp Expiry) {
 		} else {
 			s.display.Close(exp.Uid)
 		}
+		s.redraw()
 	}
 }
 
