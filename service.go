@@ -69,9 +69,10 @@ func convertRawHints(h map[string]dbus.Variant) NotificationHints {
 				hints.Resident = resident
 			}
 		case "urgency":
-			urgency, ok := value.Value().(byte)
-			if ok && UrgencyLow <= Urgency(urgency) && Urgency(urgency) <= UrgencyCritical {
-				hints.Urgency = Urgency(urgency)
+			urgency_uint, ok := value.Value().(byte)
+			urgency := Urgency(urgency_uint)
+			if ok && UrgencyLow <= urgency && urgency <= UrgencyCritical {
+				hints.Urgency = urgency
 			}
 		}
 	}

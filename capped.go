@@ -2,29 +2,19 @@ package main
 
 import "sort"
 
-func lessNotifications(a *Notification, b *Notification) bool {
-	ua := a.Hints.Urgency
-	ub := a.Hints.Urgency
-	if ua == ub {
-		return a.Id <= b.Id
-	}
-	return ua <= ub
-}
-
 type pairArray []*UidPair
 
 func (h pairArray) Len() int {
 	return len(h)
 }
 
-func (h *pairArray) Find(p *UidPair) int {
-	hh := *h
+func (h pairArray) Find(p *UidPair) int {
 	n := p.Notification
-	return sort.Search(h.Len(), func(i int) bool {
-		if hh[i] == p {
+	return sort.Search(len(h), func(i int) bool {
+		if h[i] == p {
 			return true
 		}
-		a := hh[i].Notification
+		a := h[i].Notification
 		ua := a.Hints.Urgency
 		ub := n.Hints.Urgency
 		if ua == ub {
