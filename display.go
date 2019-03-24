@@ -48,10 +48,7 @@ func (p *PopupDisplay) Draw(order []*UidPair) {
 }
 
 func (p *PopupDisplay) Close(uid UID) {
-	if popup := p.active[uid]; popup != nil {
-		popup.Close()
-		p.active[uid] = nil
-	}
+	p.Destroy(uid)
 }
 
 func (p *PopupDisplay) Destroy(uid UID) {

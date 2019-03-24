@@ -87,7 +87,9 @@ func (p *Popup) Update(n *Notification) {
 	if p.notification != n {
 		ximg := ximgFromNotification(p.x, n)
 		p.window.Resize(ximg.Bounds().Max.X, ximg.Bounds().Max.Y)
-		ximg.Window(p.window.Id)
+		ximg.XDraw()
+		ximg.XPaint(p.window.Id)
+		p.notification = n
 	}
 }
 
