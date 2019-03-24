@@ -29,7 +29,7 @@ func newServer(conn *dbus.Conn) *Server {
 		notifications: NewCappedPairs(conf.Core.Max),
 		display:       NewPopupDisplay(X),
 	}
-	server.timers = NewUidTimers(server.expiries)
+	server.timers = NewUidTimers(server.expiries, conf.Core.Max)
 	go server.Loop()
 	go server.timers.Loop()
 	go xevent.Main(X)

@@ -14,29 +14,40 @@ type UidTimers struct {
 	c chan Expiry
 }
 
-func NewUidTimers(c chan Expiry) *UidTimers {
+func NewUidTimers(c chan Expiry, size int) *UidTimers {
+	if size < 0 {
+		size = 10
+	}
 	return &UidTimers{
-		e: map[tctx.TimerId]Expiry{},
-		m: map[UID]*TimerInfo{},
+		e: make(map[tctx.TimerId]Expiry, size*2),
+		m: make(map[UID]*TimerInfo, size),
 		c: c,
 	}
 }
 
 func (ut *UidTimers) Delete(uid UID) {
+	if timerInfo := ut.m[uid]; timerInfo != nil {
+		delete(ut.e, timerInfo.PopupCloseId)
+		delete(ut.e, timerInfo.TimeoutId)
+	}
 	delete(ut.m, uid)
 }
 
 func (ut *UidTimers) Add(d time.Duration, e Expiry) {
 	timerId := tctx.Request(d)
 	ut.e[timerId] = e
-	if ut.m[e.Uid] == nil {
-		ut.m[e.Uid] = &TimerInfo{}
+	timerInfo := ut.m[e.Uid]
+	if timerInfo == nil {
+		timerInfo = &TimerInfo{}
+		ut.m[e.Uid] = timerInfo
 	}
 	switch e.Type {
 	case ExpiryTimeout:
-		ut.m[e.Uid].TimeoutId = timerId
+		delete(ut.e, timerInfo.TimeoutId)
+		timerInfo.TimeoutId = timerId
 	case ExpiryPopupClose:
-		ut.m[e.Uid].PopupCloseId = timerId
+		delete(ut.e, timerInfo.PopupCloseId)
+		timerInfo.PopupCloseId = timerId
 	}
 }
 

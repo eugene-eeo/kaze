@@ -61,6 +61,7 @@ func (s *Server) handleNewNotification(n *Notification) {
 	if excess != nil {
 		s.close(excess.Uid, excess.Notification.Id, ReasonUndefined)
 	}
+	// If we have no excess, or we are NOT the excess, then display it
 	if excess == nil || excess.Notification != n {
 		s.display.Show(old, new, n, actionContextMenuCb(s), actionCloseOneCb(s))
 	}
@@ -105,8 +106,10 @@ func (s *Server) handleAction(a ActionRequest) {
 	case ActionCloseOne:
 		nid := a.Nid
 		uid := s.notifications.UidOf(nid)
-		s.close(uid, nid, ReasonUserDismissed)
-		s.redraw()
+		if uid != 0 {
+			s.close(uid, nid, ReasonUserDismissed)
+			s.redraw()
+		}
 	case ActionCloseTop:
 		nid, uid := s.notifications.Top()
 		if nid != 0 {
@@ -121,6 +124,7 @@ func (s *Server) handleAction(a ActionRequest) {
 			return
 		}
 		go execMixedSelector(noti.Actions, noti.Body.Hyperlinks, func(action string) {
+			// If there are no actions/links we will get action == ""
 			if action != "" {
 				s.emitAction(nid, action)
 			}
@@ -132,7 +136,7 @@ func (s *Server) handleAction(a ActionRequest) {
 			}
 		})
 	case ActionContextMenuDone:
-		if s.notifications.Get(a.Uid) != nil {
+		if s.notifications.UidOf(a.Nid) == a.Uid {
 			s.close(a.Uid, a.Nid, ReasonUndefined)
 			s.redraw()
 		}
