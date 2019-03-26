@@ -11,6 +11,7 @@ import "github.com/BurntSushi/xgbutil/mousebind"
 var conf *config.Config
 var fontBold *truetype.Font
 var fontRegular *truetype.Font
+var fontFallback *truetype.Font
 
 func newServer(conn *dbus.Conn) *Server {
 	X, err := xgbutil.NewConn()
@@ -49,6 +50,7 @@ func main() {
 	// Parse fonts
 	fontBold = mustReadFont(conf.Style.FontBold)
 	fontRegular = mustReadFont(conf.Style.FontRegular)
+	fontFallback = mustReadFont(conf.Style.FontFallback)
 
 	// DBus handshake
 	conn, err := dbus.SessionBus()

@@ -6,32 +6,6 @@ import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xgraphics"
 import "github.com/BurntSushi/freetype-go/freetype/truetype"
 
-func getWidth(font *truetype.Font, fontSize float64, text string) int {
-	w, _ := xgraphics.Extents(font, fontSize, text)
-	return w
-}
-
-func maxWidth(text string, max int, font *truetype.Font, fontSize float64) string {
-	n := len(text)
-	l := getWidth(font, fontSize, text)
-	i := n
-	// minimisation stage
-	for l > max && i > 0 {
-		i /= 2
-		l = getWidth(font, fontSize, text[:i])
-	}
-	// maximisation stage
-	for i < n {
-		i++
-		l = getWidth(font, fontSize, text[:i])
-		if l > max {
-			i--
-			break
-		}
-	}
-	return text[:i]
-}
-
 func max(a, b int) int {
 	if a > b {
 		return a

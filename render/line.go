@@ -48,5 +48,8 @@ func TextBoxWithMaxWidth(text string, fl FontList, fontSize float64, maxWidth in
 			}
 		}
 	})
+	if line.Height > 0 {
+		tb = append(tb, line)
+	}
 	return tb
 }

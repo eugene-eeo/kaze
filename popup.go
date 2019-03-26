@@ -4,6 +4,7 @@ import "github.com/BurntSushi/xgbutil"
 import "github.com/BurntSushi/xgbutil/xgraphics"
 import "github.com/BurntSushi/xgbutil/xwindow"
 import "github.com/BurntSushi/xgbutil/ewmh"
+import "github.com/eugene-eeo/kaze/render"
 
 type TextLine struct {
 	Text   string
@@ -23,33 +24,34 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
 	padding := conf.Style.Padding
 	notificationWidth := conf.Style.Width
 
-	summary := maxWidth(n.AppName+": "+n.Summary, notificationWidth, fontBold, fontSize)
-	_, firsth := xgraphics.Extents(fontBold, fontSize, summary)
+	flBold := render.FontList{fontBold, fontFallback}
+	flRegular := render.FontList{fontRegular, fontFallback}
 
-	chunks := []TextLine{}
-	height := firsth
-	body := n.Body.Text
+	summary := render.TextBoxWithMaxWidth(n.AppName+": "+n.Summary, flBold, fontSize, notificationWidth)[0]
+	textbox := render.TextBoxWithMaxWidth(n.Body.Text, flRegular, fontSize, notificationWidth)
 
-	for {
-		text := maxWidth(body, notificationWidth, fontRegular, fontSize)
-		_, h := xgraphics.Extents(fontRegular, fontSize, text)
-		chunks = append(chunks, TextLine{text, h})
-		height += h
-		body = body[len(text):]
-		if len(body) == 0 {
-			break
-		}
+	height := summary.Height
+	for _, line := range textbox {
+		height += line.Height
 	}
+
 	// create canvas
 	ximg := ximgWithProps(X, padding,
 		height, notificationWidth,
 		conf.Style.BorderWidth, bg,
 		conf.Style.BorderColor.BGRA)
-	h := 0
 	// draw text
-	_, _, _ = ximg.Text(padding, padding, fg, fontSize, fontBold, summary)
-	for _, line := range chunks {
-		_, _, _ = ximg.Text(padding, padding+firsth+h, fg, fontSize, fontRegular, line.Text)
+	h := padding
+	x := padding
+	for _, c := range summary.Chunks {
+		x, _, _ = ximg.Text(x, h, fg, fontSize, c.Font, string(c.Rune))
+	}
+	h += summary.Height
+	for _, line := range textbox {
+		x := padding
+		for _, c := range line.Chunks {
+			x, _, _ = ximg.Text(x, h, fg, fontSize, c.Font, string(c.Rune))
+		}
 		h += line.Height
 	}
 	return ximg

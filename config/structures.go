@@ -23,19 +23,20 @@ type coreConfig struct {
 }
 
 type styleConfig struct {
-	FontRegular string `toml:"font_regular"`
-	FontBold    string `toml:"font_bold"`
-	XOffset     int    `toml:"x_offset"`
-	YOffset     int    `toml:"y_offset"`
-	Width       int    `toml:"width"`
-	FontSize    int    `toml:"font_size"`
-	BorderWidth int    `toml:"border_width"`
-	BorderColor color  `toml:"border_color"`
-	Padding     int    `toml:"padding"`
-	Fg          color  `toml:"fg"`
-	CriticalBg  color  `toml:"critical_bg"`
-	NormalBg    color  `toml:"normal_bg"`
-	LowBg       color  `toml:"low_bg"`
+	FontFallback string `toml:"font_fallback"`
+	FontRegular  string `toml:"font_regular"`
+	FontBold     string `toml:"font_bold"`
+	XOffset      int    `toml:"x_offset"`
+	YOffset      int    `toml:"y_offset"`
+	Width        int    `toml:"width"`
+	FontSize     int    `toml:"font_size"`
+	BorderWidth  int    `toml:"border_width"`
+	BorderColor  color  `toml:"border_color"`
+	Padding      int    `toml:"padding"`
+	Fg           color  `toml:"fg"`
+	CriticalBg   color  `toml:"critical_bg"`
+	NormalBg     color  `toml:"normal_bg"`
+	LowBg        color  `toml:"low_bg"`
 }
 
 type bindingsConfig struct {
