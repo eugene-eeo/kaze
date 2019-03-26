@@ -15,8 +15,6 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
 	switch n.Hints.Urgency {
 	case UrgencyCritical:
 		bg = conf.Style.CriticalBg.BGRA
-	case UrgencyNormal:
-		bg = conf.Style.NormalBg.BGRA
 	case UrgencyLow:
 		bg = conf.Style.LowBg.BGRA
 	}
