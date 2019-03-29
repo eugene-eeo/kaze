@@ -4,7 +4,8 @@ import "regexp"
 import "strings"
 import "golang.org/x/net/html"
 
-var whitespace = regexp.MustCompile(`\s+`)
+var layoutWhitespace = regexp.MustCompile(`[\n]+`)
+var nonlayoutWhitespace = regexp.MustCompile(`[ \t\f]+`)
 
 type Hyperlink struct {
 	Text string
@@ -18,6 +19,15 @@ func getAHref(h *html.Node) string {
 		}
 	}
 	return ""
+}
+
+func trim(s string) string {
+	return strings.TrimSpace(
+		nonlayoutWhitespace.ReplaceAllLiteralString(
+			layoutWhitespace.ReplaceAllLiteralString(s, "\n"),
+			" ",
+		),
+	)
 }
 
 func TextInfoFromString(s string) (string, []Hyperlink) {
@@ -51,7 +61,7 @@ func TextInfoFromString(s string) (string, []Hyperlink) {
 				return
 			}
 		case html.TextNode:
-			chunks = append(chunks, strings.TrimSpace(whitespace.ReplaceAllLiteralString(node.Data, " ")))
+			chunks = append(chunks, trim(node.Data))
 		}
 		for c := node.FirstChild; c != nil; c = c.NextSibling {
 			f(c)

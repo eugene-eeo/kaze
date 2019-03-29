@@ -33,7 +33,11 @@ func TextBoxWithMaxWidth(text string, fl FontList, fontSize float64, maxWidth in
 	tb := TextBox{}
 	line := Line{Chunks: []Chunk{}}
 	ChunksFromString(text, fl, fontSize, func(c Chunk) {
-		if line.Width+c.W > maxWidth {
+		// handle linebreaks
+		if c.Rune == '\n' {
+			tb = append(tb, line)
+			line = Line{Chunks: []Chunk{}}
+		} else if line.Width+c.W > maxWidth {
 			tb = append(tb, line)
 			line = Line{
 				Chunks: []Chunk{c},

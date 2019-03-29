@@ -27,26 +27,28 @@ func ximgFromNotification(X *xgbutil.XUtil, n *Notification) *xgraphics.Image {
 	flBold := render.FontList{fontBold, fontFallback}
 	flRegular := render.FontList{fontRegular, fontFallback}
 
-	summary := render.TextBoxWithMaxWidth(n.AppName+": "+n.Summary, flBold, fontSize, notificationWidth)[0]
+	summary := render.TextBoxWithMaxWidth(n.AppName+": "+n.Summary, flBold, fontSize, notificationWidth)
 	textbox := render.TextBoxWithMaxWidth(n.Body.Text, flRegular, fontSize, notificationWidth)
 
-	height := summary.Height
+	height := 0
+	for _, line := range summary {
+		height += line.Height
+	}
 	for _, line := range textbox {
 		height += line.Height
 	}
 
 	// create canvas
-	ximg := ximgWithProps(X, padding,
-		height, notificationWidth,
-		conf.Style.BorderWidth, bg,
-		conf.Style.BorderColor.BGRA)
+	ximg := ximgWithProps(X, padding, height, notificationWidth, conf.Style.BorderWidth, bg, conf.Style.BorderColor.BGRA)
 	// draw text
 	h := padding
-	x := padding
-	for _, c := range summary.Chunks {
-		x, _, _ = ximg.Text(x, h, fg, fontSize, c.Font, string(c.Rune))
+	for _, line := range summary {
+		x := padding
+		for _, c := range line.Chunks {
+			x, _, _ = ximg.Text(x, h, fg, fontSize, c.Font, string(c.Rune))
+		}
+		h += line.Height
 	}
-	h += summary.Height
 	for _, line := range textbox {
 		x := padding
 		for _, c := range line.Chunks {

@@ -12,8 +12,8 @@ kbd_show_all  = "Mod1-Space"
 
 [style]
 font_fallback = "_font/unifont-12.0.01.ttf"
-font_bold    = "/home/eeojun/.local/share/fonts/Consolas.ttf"
-font_regular = "/home/eeojun/.local/share/fonts/Consolas.ttf"
+font_bold    = "/home/eeojun/.local/share/fonts/Inconsolata-Bold.ttf"
+font_regular = "/home/eeojun/.local/share/fonts/Inconsolata-Regular.ttf"
 width        = 315
 x_offset     = 1580
 y_offset     = 30
