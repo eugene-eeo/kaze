@@ -53,7 +53,7 @@ func (s *Server) handleNewNotification(n *Notification) {
 	old := s.uid
 	new := s.uid
 	// if this is a replacesId call
-	if old_id := s.notifications.idToUid[n.Id]; old_id > 0 {
+	if old_id := s.notifications.UidOf(n.Id); old_id > 0 {
 		old = old_id
 		s.timers.Delete(old_id)
 	}
@@ -62,7 +62,7 @@ func (s *Server) handleNewNotification(n *Notification) {
 		s.close(excess.Uid, excess.Notification.Id, ReasonUndefined)
 	}
 	// If we have no excess, or we are NOT the excess, then display it
-	if excess == nil || excess.Notification != n {
+	if excess == nil || excess.Uid != new {
 		s.display.Show(old, new, n, actionContextMenuCb(s), actionCloseOneCb(s))
 	}
 	// calculate and add timeouts
@@ -112,7 +112,7 @@ func (s *Server) handleAction(a ActionRequest) {
 		}
 	case ActionCloseTop:
 		nid, uid := s.notifications.Top()
-		if nid != 0 {
+		if uid != 0 {
 			s.close(uid, nid, ReasonUserDismissed)
 			s.redraw()
 		}

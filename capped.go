@@ -45,7 +45,7 @@ func (h *pairArray) Insert(p *UidPair) {
 
 type CappedPairs struct {
 	max     int
-	lru     *pairArray
+	lru     *pairArray // maintains notifications in order
 	lookup  map[UID]*Notification
 	idToUid map[uint32]UID // maps from notification-id to uid
 }
@@ -55,18 +55,20 @@ func NewCappedPairs(max int) *CappedPairs {
 	return &CappedPairs{
 		max:     max,
 		lru:     &lru,
-		lookup:  map[UID]*Notification{},
-		idToUid: map[uint32]UID{}, // maps from notification-id to uid
+		lookup:  make(map[UID]*Notification, max),
+		idToUid: make(map[uint32]UID, max),
 	}
 }
 
 func (cp *CappedPairs) Insert(uid UID, p *Notification) (excess *UidPair) {
-	// If this is a replacesId operation then we need to delete the previous
-	// notification
-	x := cp.idToUid[p.Id]
-	if old_noti := cp.lookup[x]; old_noti != nil {
-		delete(cp.lookup, x)
-		cp.lru.Delete(&UidPair{x, old_noti})
+	// If there is an existing notification with the same notification-id
+	// then we need to make sure that it is deleted.
+	old_uid := cp.idToUid[p.Id]
+	if old_noti := cp.lookup[old_uid]; old_noti != nil {
+		delete(cp.lookup, old_uid)
+		cp.lru.Delete(&UidPair{old_uid, old_noti})
+		// don't need to do delete(cp.idToUid, p.Id) because it will
+		// be re-added in the next line
 	}
 	cp.idToUid[p.Id] = uid
 	cp.lookup[uid] = p
