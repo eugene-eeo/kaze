@@ -43,6 +43,10 @@ func (p *PopupDisplay) Draw(order []*UidPair) {
 		if popup := p.active[pair.Uid]; popup != nil {
 			popup.Move(conf.Style.XOffset, height)
 			height += popup.Height() - conf.Style.BorderWidth
+			// Stop displaying more popups if it exceeds max height
+			if height >= conf.Core.MaxHeight {
+				break
+			}
 		}
 	}
 }

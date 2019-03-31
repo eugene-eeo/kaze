@@ -1,8 +1,9 @@
 [core]
-context_menu = ["slouch", "pipe"]
-link_opener  = ["pdetach", "xdg-open"]
-maxpopupage  = "7s"
-max          = 100
+context_menu  = ["slouch", "pipe"]
+link_opener   = ["pdetach", "xdg-open"]
+max_popup_age = "7s"
+max_height    = 900
+max           = 100
 
 [bindings]
 mse_filter    = "1"
