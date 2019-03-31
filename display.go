@@ -17,8 +17,8 @@ func NewPopupDisplay(x *xgbutil.XUtil) *PopupDisplay {
 }
 
 func bindMouseCallbacks(X *xgbutil.XUtil, popup *Popup, ctxMenuFunc func(*Notification), closeFunc func(*Notification)) {
-	cmenu := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) { go ctxMenuFunc(popup.notification) })
-	close := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) { go closeFunc(popup.notification) })
+	cmenu := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) { ctxMenuFunc(popup.notification) })
+	close := mousebind.ButtonPressFun(func(X *xgbutil.XUtil, e xevent.ButtonPressEvent) { closeFunc(popup.notification) })
 	cmenu.Connect(X, popup.window.Id, conf.Bindings.Filter, false, true)
 	close.Connect(X, popup.window.Id, conf.Bindings.CloseOne, false, true)
 }
