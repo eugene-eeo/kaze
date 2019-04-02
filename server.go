@@ -104,6 +104,9 @@ func (s *Server) handleCloseNotification(id uint32) bool {
 func (s *Server) handleAction(a ActionRequest) {
 	switch a.Type {
 	case ActionCloseOne:
+		// why a.Uid is not taken into account:
+		// the user should never be allowed to close the notification before an
+		// update (replacesId) completes
 		nid := a.Nid
 		uid := s.notifications.UidOf(nid)
 		if uid != 0 {
