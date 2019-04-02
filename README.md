@@ -1,4 +1,6 @@
-# <img src="_img/kaze.png" width="50px"/> kaze
+<img src="_img/kaze.png" width="150px" align="left"/>
+
+# kaze
 
 Lightweight notification daemon for Linux.
 Implements the [freedesktop notification spec](https://developer.gnome.org/notification-spec/).
