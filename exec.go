@@ -19,7 +19,9 @@ func execUserSelector(command []string, chunks []string) string {
 	return s
 }
 
-func execMixedSelector(actions []NotificationAction, links []Hyperlink, actionsCallback func(string)) {
+func execMixedSelector(n *Notification, actionsCallback func(string)) {
+	links := n.Body.Hyperlinks
+	actions := n.Actions
 	chunks := make([]string, len(actions)+len(links))
 	i := 0
 	for _, action := range actions {

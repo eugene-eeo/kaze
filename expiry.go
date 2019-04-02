@@ -51,17 +51,17 @@ func (ut *UidTimers) Add(d time.Duration, e Expiry) {
 	}
 }
 
+func (ut *UidTimers) processTimerId(timerId tctx.TimerId) {
+	expiry, ok := ut.e[timerId]
+	info := ut.m[expiry.Uid]
+	if ok && info != nil && (info.TimeoutId == timerId || info.PopupCloseId == timerId) {
+		delete(ut.m, expiry.Uid)
+		ut.c <- expiry
+	}
+}
+
 func (ut *UidTimers) Loop() {
 	for {
-		timerId := <-tctx.Listen()
-		expiry, ok := ut.e[timerId]
-		if !ok {
-			continue
-		}
-		info := ut.m[expiry.Uid]
-		if info != nil && (info.TimeoutId == timerId || info.PopupCloseId == timerId) {
-			delete(ut.m, expiry.Uid)
-			ut.c <- expiry
-		}
+		ut.processTimerId(<-tctx.Listen())
 	}
 }

@@ -39,13 +39,19 @@ func (p *PopupDisplay) Show(old UID, uid UID, n *Notification, ctxMenuFunc func(
 
 func (p *PopupDisplay) Draw(order []*UidPair) {
 	height := conf.Style.YOffset
+	hide := false
 	for _, pair := range order {
 		if popup := p.active[pair.Uid]; popup != nil {
-			popup.Move(conf.Style.XOffset, height)
-			height += popup.Height() - conf.Style.BorderWidth
-			// Stop displaying more popups if it exceeds max height
-			if height >= conf.Core.MaxHeight {
-				break
+			if !hide {
+				// If we are in showing mode
+				popup.Move(conf.Style.XOffset, height)
+				height += popup.Height() - conf.Style.BorderWidth
+				if height >= conf.Core.MaxHeight {
+					hide = true
+				}
+			} else {
+				// otherwise we need to close the window
+				p.Close(pair.Uid)
 			}
 		}
 	}

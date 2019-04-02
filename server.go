@@ -64,12 +64,12 @@ func (s *Server) handleNewNotification(n *Notification) {
 	// If we have no excess, or we are NOT the excess, then display it
 	if excess == nil || excess.Uid != new {
 		s.display.Show(old, new, n, actionContextMenuCb(s), actionCloseOneCb(s))
+		// calculate and add timeouts
+		popupAge, timeout := s.calculateTimeouts(n.Hints.Urgency, n.ExpireTimeout)
+		s.timers.Add(popupAge, Expiry{ExpiryPopupClose, new})
+		s.timers.Add(timeout, Expiry{ExpiryTimeout, new})
+		s.redraw()
 	}
-	// calculate and add timeouts
-	popupAge, timeout := s.calculateTimeouts(n.Hints.Urgency, n.ExpireTimeout)
-	s.timers.Add(popupAge, Expiry{ExpiryPopupClose, new})
-	s.timers.Add(timeout, Expiry{ExpiryTimeout, new})
-	s.redraw()
 }
 
 func (s *Server) emitAction(id uint32, action_key string) {
@@ -117,7 +117,6 @@ func (s *Server) handleAction(a ActionRequest) {
 		pair := s.display.FirstVisible(s.notifications.Order())
 		if pair != nil {
 			s.close(pair.Uid, pair.Notification.Id, ReasonUserDismissed)
-			s.redraw()
 		}
 	case ActionContextMenu:
 		nid := a.Nid
@@ -126,7 +125,7 @@ func (s *Server) handleAction(a ActionRequest) {
 		if noti == nil {
 			return
 		}
-		go execMixedSelector(noti.Actions, noti.Body.Hyperlinks, func(action string) {
+		go execMixedSelector(noti, func(action string) {
 			// If there are no actions/links we will get action == ""
 			if action != "" {
 				s.emitAction(nid, action)
