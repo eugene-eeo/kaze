@@ -111,9 +111,9 @@ func (s *Server) handleAction(a ActionRequest) {
 			s.redraw()
 		}
 	case ActionCloseTop:
-		nid, uid := s.notifications.Top()
-		if uid != 0 {
-			s.close(uid, nid, ReasonUserDismissed)
+		pair := s.display.FirstVisible(s.notifications.Order())
+		if pair != nil {
+			s.close(pair.Uid, pair.Notification.Id, ReasonUserDismissed)
 			s.redraw()
 		}
 	case ActionContextMenu:

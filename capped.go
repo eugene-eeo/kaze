@@ -109,11 +109,3 @@ func (cp *CappedPairs) Delete(uid UID) {
 func (cp *CappedPairs) Order() []*UidPair {
 	return *cp.lru
 }
-
-func (cp *CappedPairs) Top() (uint32, UID) {
-	order := cp.Order()
-	if len(order) == 0 {
-		return 0, 0
-	}
-	return order[0].Notification.Id, order[0].Uid
-}

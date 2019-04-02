@@ -62,3 +62,12 @@ func (p *PopupDisplay) Destroy(uid UID) {
 		delete(p.active, uid)
 	}
 }
+
+func (p *PopupDisplay) FirstVisible(order []*UidPair) *UidPair {
+	for _, pair := range order {
+		if p.active[pair.Uid] != nil {
+			return pair
+		}
+	}
+	return nil
+}
