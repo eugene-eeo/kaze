@@ -1,20 +1,32 @@
 [core]
 context_menu  = ["slouch", "pipe"]
 link_opener   = ["pdetach", "xdg-open"]
+# maximum time a notification will remain open until it is hidden from view
+# a hidden notification is not closed, just not visible
 max_popup_age = "7s"
-max_height    = 900
-max           = 100
+# maximum height of all notification popups
+max_height = 900
+# maximum number of notifications to hold in memory at once. If more than `max`
+# notifications are received, the new notification or an existing notification
+# will be destroyed depending on it's importance and recency.
+max = 100
 
 [bindings]
-mse_filter    = "1"
+# mouse binding to open the context menu (filter program) for a specific notification
+mse_filter = "1"
+# mouse binding to close a notification
 mse_close_one = "3"
+# keyboard binding to close the topmost (hidden or un-hidden) notification
+# usually this means the most important and most recent notification
 kbd_close_top = "Mod1-Shift-Space"
+# keyboard binding to display all notifications
 kbd_show_all  = "Mod1-Space"
 
 [style]
 font_fallback = "_font/unifont-12.0.01.ttf"
 font_bold    = "_font/unifont-12.0.01.ttf"
 font_regular = "_font/unifont-12.0.01.ttf"
+# width of the notification, before padding is applied
 width        = 315
 x_offset     = 1580
 y_offset     = 30
