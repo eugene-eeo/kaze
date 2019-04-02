@@ -42,7 +42,7 @@ func newServer(conn *dbus.Conn) *Server {
 
 func main() {
 	var err error
-	conf, err = config.ConfigFromFile("kaze.toml")
+	conf, err = config.GetConfig()
 	if err != nil {
 		panic(err)
 	}

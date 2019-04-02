@@ -13,10 +13,10 @@ These might be implemented in the future.
 
 ## features
 
- - config file
+ - config file (`~/.config/kaze/kaze.toml`)
  - (mouse) `1`: context menu - use external program like dmenu to select link/action
  - (mouse) `3`: close notification
- - (kbd) `Mod3-Shift-Space`: close topmost notification
+ - (kbd) `Mod3-Shift-Space`: close topmost visible notification
  - (kbd) `Mod3-Space`: show all notifications
  - notifications shown in order of importance then recency
  - fallback font support
@@ -24,6 +24,5 @@ These might be implemented in the future.
 
 ## todo
 
- - move config file to sensible location
  - maybe use fontconfig so only need to give font name
 
