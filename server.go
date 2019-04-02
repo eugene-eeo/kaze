@@ -117,6 +117,7 @@ func (s *Server) handleAction(a ActionRequest) {
 		pair := s.display.FirstVisible(s.notifications.Order())
 		if pair != nil {
 			s.close(pair.Uid, pair.Notification.Id, ReasonUserDismissed)
+			s.redraw()
 		}
 	case ActionContextMenu:
 		nid := a.Nid

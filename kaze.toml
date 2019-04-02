@@ -4,8 +4,6 @@ link_opener   = ["pdetach", "xdg-open"]
 # maximum time a notification will remain open until it is hidden from view
 # a hidden notification is not closed, just not visible
 max_popup_age = "7s"
-# maximum height of all notification popups
-max_height = 900
 # maximum number of notifications to hold in memory at once. If more than `max`
 # notifications are received, the new notification or an existing notification
 # will be destroyed depending on it's importance and recency.

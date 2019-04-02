@@ -19,7 +19,6 @@ type coreConfig struct {
 	ContextMenuProgram []string `toml:"context_menu"`
 	LinkOpenProgram    []string `toml:"link_opener"`
 	MaxPopupAge        duration `toml:"max_popup_age"`
-	MaxHeight          int      `toml:"max_height"`
 	Max                int      `toml:"max"`
 }
 
